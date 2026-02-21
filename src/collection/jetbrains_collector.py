@@ -1,0 +1,1 @@
+"""JetBrains issue collector."""
