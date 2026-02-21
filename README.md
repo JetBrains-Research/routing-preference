@@ -53,6 +53,16 @@ Additional considerations:
 | OpenAI o5.2 | SOTA (OpenAI) |
 | Kimi-k2 | SOTA(Moonshot) |
 
+## Quick Start
+
+```bash
+git clone --recurse-submodules https://github.com/YOUR_ORG/routing-preference.git
+cd routing-preference
+make setup
+```
+
+See [GUIDE.md](GUIDE.md) for full instructions.
+
 ## Related Work
 
 - [Analysing generative AI coding tools](https://lau.ucsd.edu/pubs/2025_analysis-of-90-genai-coding-tools_VLHCC.pdf)
