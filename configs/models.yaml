@@ -53,6 +53,13 @@ models:
         output_cost: 15.00
 
   # GPT
+  gpt-4o-mini:
+    providers:
+      openai:
+        model: openai/gpt-4o-mini
+        input_cost: 0.15
+        output_cost: 0.60
+
   gpt-5.2:
     providers:
       openai:
