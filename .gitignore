@@ -47,12 +47,11 @@ htmlcov/
 dmypy.json
 
 # Data (keep structure, ignore contents)
-data/issues/*.json
-data/solutions/*.json
-data/responses/*.json
-!data/issues/.gitkeep
-!data/solutions/.gitkeep
-!data/responses/.gitkeep
+data/
+!data/.gitkeep
+
+# OpenCode workspaces (cloned repos)
+data/workspaces/
 
 # Secrets
 .env.local
