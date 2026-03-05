@@ -1,0 +1,24 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "litellm": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "LiteLLM",
+      "options": {
+        "baseURL": "http://localhost:4000/v1",
+        "apiKey": "${LITELLM_MASTER_KEY}"
+      },
+      "models": {
+        "gpt-4o-mini": {"name": "GPT-4o Mini"},
+        "gpt-4o": {"name": "GPT-4o"},
+        "gpt-5.2": {"name": "GPT-5.2"},
+        "claude-opus-4.5": {"name": "Claude Opus 4.5"},
+        "claude-sonnet-4.5": {"name": "Claude Sonnet 4.5"},
+        "gemini-2.5-pro": {"name": "Gemini 2.5 Pro"},
+        "gemini-2.5-flash": {"name": "Gemini 2.5 Flash"},
+        "deepseek-v3.1": {"name": "DeepSeek V3.1"},
+        "llama-3.3-70b": {"name": "Llama 3.3 70B"}
+      }
+    }
+  }
+}
