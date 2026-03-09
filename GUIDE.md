@@ -2,9 +2,14 @@
 
 ## Prerequisites
 
-- Python 3.10+
+- [uv](https://docs.astral.sh/uv/) - Fast Python package manager
 - [Bun](https://bun.sh/) runtime
 - [GitHub CLI](https://cli.github.com/) (`gh`)
+
+Install uv:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
 ## Setup
 
@@ -13,9 +18,11 @@
 git clone --recurse-submodules https://github.com/YOUR_ORG/routing-preference.git
 cd routing-preference
 
-# Install dependencies
+# Install everything
 make setup
 ```
+
+This creates a `.venv` and installs all dependencies.
 
 ## Configure
 
@@ -56,8 +63,8 @@ make generate REPO=owner/repo ISSUE=123
 # With specific model
 make generate REPO=owner/repo ISSUE=123 MODEL=gpt-4o
 
-# Using the Python script directly
-python scripts/generate.py --repo owner/repo --issue 123 --model gpt-4o-mini
+# Using uv run directly
+uv run python scripts/generate.py --repo owner/repo --issue 123 --model gpt-4o-mini
 ```
 
 ## Available Models
@@ -81,3 +88,13 @@ Solutions are saved to `data/solutions/` as JSON files containing:
 - Generated diff
 - Full output log
 - Timing information
+
+## Cleanup
+
+```bash
+# Remove generated data
+make clean
+
+# Remove everything including venv
+make clean-all
+```

@@ -1,10 +1,10 @@
-.PHONY: help setup install proxy generate clean
+.PHONY: help setup proxy generate clean
 
 help:
 	@echo "Solution Generation Pipeline"
 	@echo ""
 	@echo "Setup:"
-	@echo "  make setup     - Install all dependencies"
+	@echo "  make setup     - Create venv and install all dependencies"
 	@echo ""
 	@echo "Running:"
 	@echo "  make proxy     - Start LiteLLM proxy (run in separate terminal)"
@@ -18,10 +18,10 @@ help:
 	@echo "Cleanup:"
 	@echo "  make clean     - Remove generated data and caches"
 
-# Install all dependencies
+# Full setup
 setup:
-	@echo "Installing Python dependencies..."
-	pip install -r requirements.txt
+	@echo "Creating virtual environment and installing dependencies..."
+	uv sync
 	@echo ""
 	@echo "Installing OpenCode dependencies..."
 	git submodule update --init --recursive
@@ -43,7 +43,7 @@ proxy:
 	@echo "Starting LiteLLM proxy on http://localhost:4000"
 	@echo "Press Ctrl+C to stop"
 	@echo ""
-	litellm --config configs/litellm_config.yaml --port 4000
+	uv run litellm --config configs/litellm_config.yaml --port 4000
 
 # Generate solution for an issue
 REPO ?=
@@ -57,7 +57,7 @@ endif
 ifndef ISSUE
 	$(error ISSUE is required. Usage: make generate REPO=owner/repo ISSUE=123)
 endif
-	python scripts/generate.py --repo $(REPO) --issue $(ISSUE) --model $(MODEL)
+	uv run python scripts/generate.py --repo $(REPO) --issue $(ISSUE) --model $(MODEL)
 
 # Clean up generated files
 clean:
@@ -65,3 +65,8 @@ clean:
 	rm -rf data/workspaces/*
 	rm -rf __pycache__ src/**/__pycache__
 	@echo "Cleaned up generated files"
+
+# Remove virtual environment
+clean-all: clean
+	rm -rf .venv
+	@echo "Removed virtual environment"
