@@ -22,10 +22,13 @@ wheels/
 
 # Virtual environments
 .env
-.venv
+.venv/
 env/
 venv/
 ENV/
+
+# uv lock file (regenerated on install)
+uv.lock
 
 # IDE
 .idea/
