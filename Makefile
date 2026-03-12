@@ -23,10 +23,6 @@ setup:
 	@echo "Creating virtual environment and installing dependencies..."
 	uv sync
 	@echo ""
-	@echo "Installing OpenCode dependencies..."
-	git submodule update --init --recursive
-	cd external/opencode && bun install
-	@echo ""
 	@echo "Creating data directories..."
 	mkdir -p data/solutions data/workspaces
 	@echo ""
@@ -34,9 +30,8 @@ setup:
 	@echo ""
 	@echo "Next steps:"
 	@echo "  1. Copy .env.example to .env and add your API keys"
-	@echo "  2. Copy configs/opencode.json to ~/.config/opencode/opencode.json"
-	@echo "  3. Run 'make proxy' in one terminal"
-	@echo "  4. Run 'make generate REPO=... ISSUE=...' in another"
+	@echo "  2. Run 'make proxy' in one terminal"
+	@echo "  3. Run 'make generate REPO=... ISSUE=...' in another"
 
 # Start LiteLLM proxy server
 proxy:
