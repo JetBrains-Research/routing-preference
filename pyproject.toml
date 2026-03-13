@@ -7,7 +7,11 @@ dependencies = [
     "litellm[proxy]",
     "python-dotenv",
     "pyyaml",
+    "mini-swe-agent",
 ]
 
-[tool.uv]
-dev-dependencies = []
+[dependency-groups]
+dev = []
+
+[tool.uv.sources]
+mini-swe-agent = { path = "external/mini-swe-agent", editable = true }
