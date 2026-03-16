@@ -1,9 +1,16 @@
 """Solution generation using mini-swe-agent."""
 
+import json
 import shutil
 import subprocess
 from datetime import datetime
 from pathlib import Path
+
+from minisweagent.agents import get_agent
+from minisweagent.config import get_config_from_spec
+from minisweagent.environments import get_environment
+from minisweagent.models import get_model
+from minisweagent.utils.serialize import recursive_merge
 
 from .models import Issue, Solution
 
@@ -82,9 +89,58 @@ Implement the solution. Only modify the necessary files."""
     def _run_agent(
         self,
         workspace: Path,
-        model: str,
+        model_name: str,
         prompt: str,
         timeout: int,
     ) -> tuple[str, str]:
-        """Run mini-swe-agent and return (output, diff)."""
-        raise NotImplementedError("Agent integration not yet implemented")
+        """Run mini-swe-agent and return (trajectory_json, diff).
+
+        Args:
+            workspace: Path to the cloned repository.
+            model_name: Model name in LiteLLM format.
+            prompt: The task prompt.
+            timeout: Timeout in seconds for each command.
+
+        Returns:
+            Tuple of (trajectory as JSON string, git diff).
+        """
+        # Load default config and merge with our settings
+        base_config = get_config_from_spec("default")
+        config = recursive_merge(
+            base_config,
+            {
+                "model": {
+                    "model_name": model_name,
+                    "cost_tracking": "ignore_errors",
+                },
+                "environment": {
+                    "cwd": str(workspace),
+                    "timeout": timeout,
+                },
+                "agent": {
+                    "cost_limit": 10.0,  # $10 limit per issue
+                },
+            },
+        )
+
+        # Initialize components
+        model = get_model(config=config.get("model", {}))
+        env = get_environment(config.get("environment", {}), default_type="local")
+        agent = get_agent(model, env, config.get("agent", {}), default_type="default")
+
+        # Run the agent
+        agent.run(prompt)
+
+        # Serialize the trajectory
+        trajectory = json.dumps(agent.serialize(), indent=2)
+
+        # Get git diff
+        diff_result = subprocess.run(
+            ["git", "diff"],
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+        )
+        diff = diff_result.stdout
+
+        return trajectory, diff
