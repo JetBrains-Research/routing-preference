@@ -35,7 +35,7 @@ class SolutionStorage:
     def load_all(self) -> list[Solution]:
         """Load all solutions from the storage directory."""
         solutions = []
-        for path in self.base_path.glob("*.json"):
+        for path in sorted(self.base_path.glob("*.json")):
             solutions.append(self.load(path))
         return solutions
 
