@@ -1,4 +1,4 @@
-.PHONY: help setup proxy generate clean
+.PHONY: help setup generate clean clean-all
 
 help:
 	@echo "Solution Generation Pipeline"
@@ -7,18 +7,15 @@ help:
 	@echo "  make setup     - Create venv and install all dependencies"
 	@echo ""
 	@echo "Running:"
-	@echo "  make proxy     - Start LiteLLM proxy (run in separate terminal)"
-	@echo "  make generate  - Generate solution (requires REPO and ISSUE)"
+	@echo "  make generate  - Generate solutions (requires DATASET)"
 	@echo ""
 	@echo "Examples:"
-	@echo "  make proxy"
-	@echo "  make generate REPO=owner/repo ISSUE=123"
-	@echo "  make generate REPO=owner/repo ISSUE=123 MODEL=gpt-4o"
+	@echo "  make generate DATASET=org/routing-issues"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean     - Remove generated data and caches"
+	@echo "  make clean-all - Also remove virtual environment"
 
-# Full setup
 setup:
 	@echo "Creating virtual environment and installing dependencies..."
 	uv sync
@@ -30,38 +27,28 @@ setup:
 	@echo ""
 	@echo "Next steps:"
 	@echo "  1. Copy .env.example to .env and add your API keys"
-	@echo "  2. Run 'make proxy' in one terminal"
-	@echo "  3. Run 'make generate REPO=... ISSUE=...' in another"
+	@echo "  2. Run 'make generate DATASET=org/routing-issues'"
 
-# Start LiteLLM proxy server
-proxy:
-	@echo "Starting LiteLLM proxy on http://localhost:4000"
-	@echo "Press Ctrl+C to stop"
-	@echo ""
-	uv run litellm --config configs/litellm_config.yaml --port 4000
-
-# Generate solution for an issue
-REPO ?=
-ISSUE ?=
-MODEL ?= gpt-4o-mini
+DATASET ?=
+MODEL ?= openai/gpt-4o-mini
+LIMIT ?=
 
 generate:
-ifndef REPO
-	$(error REPO is required. Usage: make generate REPO=owner/repo ISSUE=123)
+ifndef DATASET
+	$(error DATASET is required. Usage: make generate DATASET=org/routing-issues)
 endif
-ifndef ISSUE
-	$(error ISSUE is required. Usage: make generate REPO=owner/repo ISSUE=123)
+ifdef LIMIT
+	uv run generate --dataset $(DATASET) --model $(MODEL) --limit $(LIMIT)
+else
+	uv run generate --dataset $(DATASET) --model $(MODEL)
 endif
-	uv run python scripts/generate.py --repo $(REPO) --issue $(ISSUE) --model $(MODEL)
 
-# Clean up generated files
 clean:
 	rm -rf data/solutions/*.json
 	rm -rf data/workspaces/*
 	rm -rf __pycache__ src/**/__pycache__
 	@echo "Cleaned up generated files"
 
-# Remove virtual environment
 clean-all: clean
 	rm -rf .venv
 	@echo "Removed virtual environment"
