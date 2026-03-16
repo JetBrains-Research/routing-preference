@@ -5,10 +5,8 @@ description = "Research pipeline for AI code solution generation"
 requires-python = ">=3.11"
 dependencies = [
     "datasets",
-    "litellm[proxy]",
     "mini-swe-agent",
     "python-dotenv",
-    "pyyaml",
 ]
 
 [project.scripts]
