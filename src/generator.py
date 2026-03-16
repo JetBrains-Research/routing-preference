@@ -18,6 +18,8 @@ from minisweagent.utils.serialize import recursive_merge
 
 from .models import Issue, Solution
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_TIMEOUT = 600  # 10 minutes
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
@@ -35,7 +37,7 @@ class SolutionGenerator:
                 os.chmod(path, stat.S_IWRITE)
                 func(path)
             except Exception:
-                logging.warning(
+                logger.warning(
                     "Failed to remove path %s during workspace cleanup",
                     path,
                     exc_info=True,
@@ -44,7 +46,7 @@ class SolutionGenerator:
         try:
             shutil.rmtree(workspace, onerror=_onerror)
         except Exception:
-            logging.warning(
+            logger.warning(
                 "Failed to remove workspace %s",
                 workspace,
                 exc_info=True,
