@@ -3,6 +3,8 @@
 import argparse
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from .dataset import IssueDataset
 from .pipeline import Pipeline
 
@@ -12,6 +14,8 @@ DEFAULT_SOLUTIONS_DIR = PROJECT_ROOT / "data" / "solutions"
 
 def main() -> None:
     """Main entry point for the CLI."""
+    # Load environment variables from a .env file, if present
+    load_dotenv()
     parser = argparse.ArgumentParser(
         description="Generate solutions for GitHub issues using mini-swe-agent",
     )
