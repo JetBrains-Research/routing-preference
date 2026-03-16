@@ -1,6 +1,7 @@
 """Solution generation using mini-swe-agent."""
 
 import json
+import re
 import shutil
 import subprocess
 from datetime import datetime
@@ -37,7 +38,7 @@ class SolutionGenerator:
         workspace_base = PROJECT_ROOT / "data" / "workspaces"
         workspace_base.mkdir(parents=True, exist_ok=True)
 
-        workspace_name = f"{issue.repo.replace('/', '_')}_{issue.number}"
+        workspace_name = self._make_workspace_name(issue)
         workspace = workspace_base / workspace_name
 
         if workspace.exists():
@@ -87,6 +88,14 @@ class SolutionGenerator:
                 f"gh repo clone failed for {repo} (rc={e.returncode}).\n"
                 f"stderr: {e.stderr or ''}"
             ) from e
+
+    def _make_workspace_name(self, issue: Issue) -> str:
+        """Generate a safe workspace directory name for an issue."""
+        safe_repo = re.sub(r"[^A-Za-z0-9._-]", "_", issue.repo or "repo")
+        safe_repo = safe_repo.strip("._-") or "repo"
+        if len(safe_repo) > 100:
+            safe_repo = safe_repo[:100]
+        return f"{safe_repo}_{issue.number}"
 
     def _build_prompt(self, issue: Issue) -> str:
         """Build the prompt for the agent."""
