@@ -67,13 +67,26 @@ class SolutionGenerator:
             if workspace.exists():
                 shutil.rmtree(workspace)
 
-    def _clone_repo(self, repo: str, dest: Path) -> None:
+    def _clone_repo(self, repo: str, dest: Path, timeout: int = DEFAULT_TIMEOUT) -> None:
         """Clone a repository to the destination path."""
-        subprocess.run(
-            ["gh", "repo", "clone", repo, str(dest), "--", "--depth", "1"],
-            check=True,
-            capture_output=True,
-        )
+        try:
+            subprocess.run(
+                ["gh", "repo", "clone", repo, str(dest), "--", "--depth", "1"],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as e:
+            raise RuntimeError(
+                f"gh repo clone timed out after {timeout}s for {repo}.\n"
+                f"stderr: {e.stderr or ''}"
+            ) from e
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(
+                f"gh repo clone failed for {repo} (rc={e.returncode}).\n"
+                f"stderr: {e.stderr or ''}"
+            ) from e
 
     def _build_prompt(self, issue: Issue) -> str:
         """Build the prompt for the agent."""
