@@ -45,8 +45,9 @@ class SolutionStorage:
         return re.sub(r"[^A-Za-z0-9_.-]", "_", value)
 
     def _make_filename(self, solution: Solution) -> str:
-        """Generate a filename for a solution."""
+        """Generate a unique filename for a solution."""
         safe_id = self._sanitize(solution.issue_id)
         safe_model = self._sanitize(solution.model)
         safe_provider = self._sanitize(solution.provider)
-        return f"{safe_id}_{safe_model}_{safe_provider}.json"
+        unique_suffix = uuid4().hex[:8]
+        return f"{safe_id}_{safe_model}_{safe_provider}_{unique_suffix}.json"
