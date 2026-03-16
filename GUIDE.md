@@ -3,7 +3,6 @@
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/) - Fast Python package manager
-- [Bun](https://bun.sh/) runtime
 - [GitHub CLI](https://cli.github.com/) (`gh`)
 
 Install uv:
@@ -14,8 +13,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ## Setup
 
 ```bash
-# Clone with submodules
-git clone --recurse-submodules https://github.com/YOUR_ORG/routing-preference.git
+git clone https://github.com/YOUR_ORG/routing-preference.git
 cd routing-preference
 
 # Install everything
@@ -24,9 +22,7 @@ make setup
 
 This creates a `.venv` and installs all dependencies.
 
-## Configure
-
-### 1. API Keys
+## Configure API Keys
 
 ```bash
 cp .env.example .env
@@ -34,17 +30,9 @@ cp .env.example .env
 ```
 
 Required keys depend on which models you want to use:
+- `LITELLM_MASTER_KEY` - For LiteLLM proxy authentication
 - `OPENAI_API_KEY` - For GPT models
 - `ANTHROPIC_API_KEY` - For Claude models
-
-### 2. OpenCode Configuration
-
-```bash
-mkdir -p ~/.config/opencode
-cp configs/opencode.json ~/.config/opencode/opencode.json
-```
-
-Edit `~/.config/opencode/opencode.json` and replace `${LITELLM_MASTER_KEY}` with your actual key (same as in `.env`).
 
 ## Running
 
