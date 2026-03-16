@@ -1,8 +1,11 @@
 """Solution generation using mini-swe-agent."""
 
 import json
+import logging
+import os
 import re
 import shutil
+import stat
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -21,6 +24,31 @@ PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
 class SolutionGenerator:
     """Generates solutions using mini-swe-agent."""
+
+    def _remove_workspace(self, workspace: Path) -> None:
+        """Safely remove a workspace directory without masking underlying errors."""
+        if not workspace.exists():
+            return
+
+        def _onerror(func, path, exc_info):
+            try:
+                os.chmod(path, stat.S_IWRITE)
+                func(path)
+            except Exception:
+                logging.warning(
+                    "Failed to remove path %s during workspace cleanup",
+                    path,
+                    exc_info=True,
+                )
+
+        try:
+            shutil.rmtree(workspace, onerror=_onerror)
+        except Exception:
+            logging.warning(
+                "Failed to remove workspace %s",
+                workspace,
+                exc_info=True,
+            )
 
     def generate(
         self,
@@ -45,7 +73,7 @@ class SolutionGenerator:
         workspace = workspace_base / workspace_name
 
         if workspace.exists():
-            shutil.rmtree(workspace)
+            self._remove_workspace(workspace)
 
         # Extract top-level provider/gateway (first segment of LiteLLM model ID)
         provider = model.split("/")[0] if "/" in model else "unknown"
@@ -69,7 +97,7 @@ class SolutionGenerator:
             )
         finally:
             if workspace.exists():
-                shutil.rmtree(workspace)
+                self._remove_workspace(workspace)
 
     def _clone_repo(self, repo: str, dest: Path, timeout: int = DEFAULT_TIMEOUT) -> None:
         """Clone a repository to the destination path."""
