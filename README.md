@@ -8,50 +8,23 @@ This research project investigates how different characteristics of AI-generated
 
 ### Pipeline
 
-1. **Issue Collection**: Gather open issues (first from JetBrains, then from GitHub)
-2. **Issue Filtering**: Accepting/rejecting each issue for inclusion
-3. **Solution Generation**: Generate a pool of solutions using different models
-4. **Solution Sampling**: Select 2 solutions that differ in characteristics
-5. **User Study**: Present PR-style solutions
+1. **Issue Dataset**: Load issues from the HuggingFace dataset
+2. **Solution Generation**: Generate solutions using mini-swe-agent with different models
+3. **Solution Sampling**: Select solution pairs that differ in characteristics
+4. **User Study**: Present PR-style solutions for comparison
 
 ### Characteristics Under Study
 
-#### Quality Characteristics [Q]
+#### Quality Characteristics
 - **Intent Understanding**: How well the solution addresses what the user actually wants
 - **Correctness**: Whether the code works as expected
 - **Scope Adherence**: Staying within the bounds of the requested changes
 - **Code Quality**: Adherence to best practices, readability, maintainability
 
-#### Performance Characteristics [P]
-- **Response Speed**: How quickly the AI generates and displays suggestions
-- **Task Completion Time**: Total time until the AI finishes its response
-- **Resource Efficiency**: Computational resources consumed
+#### Performance Characteristics
+- **Response Speed**: How quickly the AI generates suggestions
+- **Task Completion Time**: Total time until the AI finishes
 - **Cost of Generation**: API/compute costs
-
-### User Study Questions
-
-1. **Preference**: Which solution (A or B) is better?
-2. **Willingness to Pay**: Would you pay USD [5-30] more for the better one?
-3. **Attribute Importance**: Which characteristics influenced your decision?
-4. **Ranking**: Order characteristics by impact on your choice
-
-Additional considerations:
-- Subscription vs. price-per-PR framing
-- Comparative/relative questioning approach
-- Anchoring effects
-- Demographic questions
-
-### Models
-
-| Model | Purpose |
-|-------|---------|
-| Qwen 8B | Baseline / lightweight |
-| Qwen 32B | Mid-Tier |
-| GLM-4.7 | SOTA (Z AI) |
-| Qwen 235B | Mid-tier |
-| Claude Opus 4.5 | SOTA (Anthropic) |
-| OpenAI o5.2 | SOTA (OpenAI) |
-| Kimi-k2 | SOTA(Moonshot) |
 
 ## Quick Start
 
@@ -61,30 +34,45 @@ cd routing-preference
 make setup
 ```
 
+Configure API keys:
+```bash
+cp .env.example .env
+# Edit .env with your API keys (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
+```
+
+Generate solutions:
+```bash
+uv run generate --dataset "not/created/yet"
+```
+
 See [GUIDE.md](GUIDE.md) for full instructions.
-
-## Related Work
-
-- [Analysing generative AI coding tools](https://lau.ucsd.edu/pubs/2025_analysis-of-90-genai-coding-tools_VLHCC.pdf)
-- [SAGE: Systematic Analysis of GenAI Evaluation](https://journals-sagepub-com.tudelft.idm.oclc.org/doi/full/10.1177/20539517241290217)
-- [Automated Code Generation Systems](https://www.mdpi.com/2079-8954/12/5/176)
-- [arXiv:2511.07401](https://arxiv.org/abs/2511.07401)
-- [arXiv:2511.09612](https://arxiv.org/abs/2511.09612)
 
 ## Project Structure
 
 ```
 routing-preference/
 ├── src/
-│   ├── collection/        # Issue collection from JetBrains/GitHub
-|   ├── filter/            # Issue filtering
-│   ├── generation/        # Solution generation with different models
-│   └── sampling/          # Solution pair sampling logic
+│   ├── cli.py           # CLI entry point
+│   ├── dataset/         # HuggingFace dataset loader
+│   ├── generator.py     # Solution generation with mini-swe-agent
+│   ├── models.py        # Issue, Solution dataclasses
+│   ├── pipeline.py      # Pipeline orchestrator
+│   └── storage.py       # Solution storage (JSON)
 ├── data/
-│   ├── issues/            # Collected and validated issues
-│   ├── solutions/         # Generated solutions
-│   └── responses/         # User study responses
-├── configs/               # Model and experiment configurations
-├── scripts/               # Utility scripts
-└── tests/                 # Test suite
+│   ├── solutions/       # Generated solutions
+│   └── workspaces/      # Temporary cloned repos
+├── configs/
+│   └── models.yaml      # Model registry
+├── external/
+│   └── mini-swe-agent/  # Agent submodule
+└── pyproject.toml
 ```
+
+## Models
+
+Models are specified in LiteLLM format (`provider/model`):
+
+| Model | Example |
+|-------|---------|
+| OpenAI | `openai/gpt-4o`, `openai/gpt-4o-mini` |
+| Anthropic | `anthropic/claude-sonnet-4-5`, `anthropic/claude-opus-4-5` |

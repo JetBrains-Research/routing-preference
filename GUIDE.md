@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/) - Fast Python package manager
-- [GitHub CLI](https://cli.github.com/) (`gh`)
+- [GitHub CLI](https://cli.github.com/) (`gh`) - For cloning repositories
 
 Install uv:
 ```bash
@@ -13,14 +13,14 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ## Setup
 
 ```bash
-git clone https://github.com/YOUR_ORG/routing-preference.git
+git clone --recurse-submodules https://github.com/JetBrains-Research/routing-preference.git
 cd routing-preference
 
 # Install everything
 make setup
 ```
 
-This creates a `.venv` and installs all dependencies.
+This creates a `.venv` and installs all dependencies including mini-swe-agent.
 
 ## Configure API Keys
 
@@ -30,52 +30,41 @@ cp .env.example .env
 ```
 
 Required keys depend on which models you want to use:
-- `LITELLM_MASTER_KEY` - For LiteLLM proxy authentication
 - `OPENAI_API_KEY` - For GPT models
 - `ANTHROPIC_API_KEY` - For Claude models
 
 ## Running
 
-### Terminal 1: Start LiteLLM Proxy
-
-```bash
-make proxy
-```
-
-### Terminal 2: Generate Solutions
+Generate solutions from the HuggingFace dataset:
 
 ```bash
 # Basic usage
-make generate REPO=owner/repo ISSUE=123
+uv run generate --dataset "not/created/yet" --model openai/gpt-4o-mini
 
-# With specific model
-make generate REPO=owner/repo ISSUE=123 MODEL=gpt-4o
+# Limit number of issues
+uv run generate --dataset "not/created/yet" --model openai/gpt-4o-mini --limit 5
 
-# Using uv run directly
-uv run python scripts/generate.py --repo owner/repo --issue 123 --model gpt-4o-mini
+# Using make
+make generate DATASET=not/created/yet MODEL=openai/gpt-4o-mini
 ```
 
 ## Available Models
 
-| Model | Provider | Notes |
-|-------|----------|-------|
-| gpt-4o-mini | openai | Fast, cheap |
-| gpt-4o | openai | More capable |
-| claude-sonnet-4.5 | anthropic | Balanced |
-| claude-opus-4.5 | anthropic | Most capable |
-| gemini-2.5-flash | gemini | Fast |
-| gemini-2.5-pro | gemini | More capable |
-| deepseek-v3.1 | deepseek | Good value |
-| llama-3.3-70b | groq | Open source |
+Models are specified in LiteLLM format (`provider/model`):
+
+| Provider | Models |
+|----------|--------|
+| OpenAI | `openai/gpt-4o-mini`, `openai/gpt-4o` |
+| Anthropic | `anthropic/claude-sonnet-4-5-20250929`, `anthropic/claude-opus-4-5` |
 
 ## Output
 
 Solutions are saved to `data/solutions/` as JSON files containing:
-- Issue details
+- Issue ID and details
 - Model used
 - Generated diff
-- Full output log
-- Timing information
+- Full agent trajectory
+- Timing and cost information
 
 ## Cleanup
 
