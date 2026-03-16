@@ -1,6 +1,7 @@
 """Solution storage and retrieval."""
 
 import json
+import re
 from dataclasses import asdict
 from pathlib import Path
 
@@ -18,13 +19,16 @@ class SolutionStorage:
         """Save a solution to disk and return the file path."""
         filename = self._make_filename(solution)
         path = self.base_path / filename
-        with open(path, "w") as f:
-            json.dump(asdict(solution), f, indent=2)
+        # Atomic write: write to temp file then rename
+        temp_path = path.with_suffix(".tmp")
+        with open(temp_path, "w", encoding="utf-8") as f:
+            json.dump(asdict(solution), f, indent=2, ensure_ascii=False)
+        temp_path.replace(path)
         return path
 
     def load(self, path: Path) -> Solution:
         """Load a solution from a file path."""
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
         return Solution(**data)
 
@@ -35,7 +39,13 @@ class SolutionStorage:
             solutions.append(self.load(path))
         return solutions
 
+    def _sanitize(self, value: str) -> str:
+        """Sanitize a string for use in a filename."""
+        return re.sub(r"[^A-Za-z0-9_.-]", "_", value)
+
     def _make_filename(self, solution: Solution) -> str:
         """Generate a filename for a solution."""
-        safe_id = solution.issue_id.replace("/", "_").replace("#", "_")
-        return f"{safe_id}_{solution.model}_{solution.provider}.json"
+        safe_id = self._sanitize(solution.issue_id)
+        safe_model = self._sanitize(solution.model)
+        safe_provider = self._sanitize(solution.provider)
+        return f"{safe_id}_{safe_model}_{safe_provider}.json"
