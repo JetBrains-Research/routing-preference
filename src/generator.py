@@ -32,7 +32,10 @@ class SolutionGenerator:
 
         Args:
             issue: The issue to solve.
-            model: Model name in LiteLLM format (e.g., "anthropic/claude-sonnet-4-5-20250929").
+            model: Model name in LiteLLM format. May have multiple '/' segments
+                (e.g., "anthropic/claude-sonnet-4-5-20250929" or
+                "openrouter/anthropic/claude-3-5-sonnet"). The first segment
+                is recorded as ``provider`` in the resulting Solution.
             timeout: Timeout in seconds.
         """
         workspace_base = PROJECT_ROOT / "data" / "workspaces"
@@ -44,7 +47,7 @@ class SolutionGenerator:
         if workspace.exists():
             shutil.rmtree(workspace)
 
-        # Extract provider from model name (e.g., "anthropic/claude-..." -> "anthropic")
+        # Extract top-level provider/gateway (first segment of LiteLLM model ID)
         provider = model.split("/")[0] if "/" in model else "unknown"
 
         try:
