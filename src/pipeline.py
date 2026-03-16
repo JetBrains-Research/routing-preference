@@ -2,68 +2,59 @@
 
 from pathlib import Path
 
-from .collector import IssueCollector
+from .dataset import IssueDataset
 from .generator import SolutionGenerator
+from .models import Issue
 from .storage import SolutionStorage
 
 
 class Pipeline:
     """Orchestrates the solution generation pipeline."""
 
-    def __init__(
-        self,
-        solutions_dir: Path,
-        litellm_base_url: str = "http://localhost:4000",
-    ):
-        self.collector = IssueCollector()
-        self.generator = SolutionGenerator(litellm_base_url)
+    def __init__(self, solutions_dir: Path):
+        self.generator = SolutionGenerator()
         self.storage = SolutionStorage(solutions_dir)
 
-    def run_single(
+    def run(
         self,
-        repo: str,
-        issue_number: int,
-        models: list[tuple[str, str]],
+        dataset: IssueDataset,
+        models: list[str],
+        limit: int | None = None,
     ) -> None:
-        """Generate solutions for a single issue with multiple models.
+        """Generate solutions for issues in a dataset.
 
         Args:
-            repo: Repository in "owner/repo" format.
-            issue_number: The issue number to solve.
-            models: List of (model_name, provider) tuples.
+            dataset: The issue dataset to process.
+            models: List of model names (e.g., "anthropic/claude-sonnet-4-5-20250929").
+            limit: Maximum number of issues to process (default: all).
         """
-        issue = self.collector.fetch(repo, issue_number)
-        print(f"Fetched: {issue.title}")
+        issues = list(dataset)
+        if limit:
+            issues = issues[:limit]
 
-        for model_name, provider in models:
-            print(f"  Generating with {model_name} ({provider})...")
-            solution = self.generator.generate(issue, model_name, provider)
-            path = self.storage.save(solution)
-            print(f"  Saved to {path.name} ({solution.duration_ms}ms)")
-
-    def run_batch(
-        self,
-        repo: str,
-        limit: int,
-        models: list[tuple[str, str]],
-    ) -> None:
-        """Generate solutions for multiple issues.
-
-        Args:
-            repo: Repository in "owner/repo" format.
-            limit: Maximum number of issues to fetch.
-            models: List of (model_name, provider) tuples.
-        """
-        issues = self.collector.fetch_batch(repo, limit)
-        print(f"Fetched {len(issues)} issues from {repo}")
+        print(f"Processing {len(issues)} issues with {len(models)} models")
 
         for issue in issues:
-            print(f"\n[{issue.id}] {issue.title}")
-            for model_name, provider in models:
-                print(f"  Generating with {model_name} ({provider})...")
-                try:
-                    solution = self.generator.generate(issue, model_name, provider)
-                    path = self.storage.save(solution)
-                    print(f"  Saved to {path.name} ({solution.duration_ms}ms)")
-                except Exception as e:
-                    print(f"  Failed: {e}")
+            self._process_issue(issue, models)
+
+    def run_single(self, issue: Issue, models: list[str]) -> None:
+        """Generate solutions for a single issue.
+
+        Args:
+            issue: The issue to solve.
+            models: List of model names.
+        """
+        self._process_issue(issue, models)
+
+    def _process_issue(self, issue: Issue, models: list[str]) -> None:
+        """Process a single issue with multiple models."""
+        print(f"\n[{issue.id}] {issue.title}")
+
+        for model in models:
+            print(f"  Generating with {model}...")
+            try:
+                solution = self.generator.generate(issue, model)
+                path = self.storage.save(solution)
+                print(f"  Saved to {path.name} ({solution.duration_ms}ms)")
+            except Exception as e:
+                print(f"  Failed: {e}")

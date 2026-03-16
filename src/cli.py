@@ -3,6 +3,7 @@
 import argparse
 from pathlib import Path
 
+from .dataset import IssueDataset
 from .pipeline import Pipeline
 
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
@@ -12,25 +13,30 @@ DEFAULT_SOLUTIONS_DIR = PROJECT_ROOT / "data" / "solutions"
 def main() -> None:
     """Main entry point for the CLI."""
     parser = argparse.ArgumentParser(
-        description="Generate solutions for GitHub issues using mini-swe-agent + LiteLLM",
+        description="Generate solutions for GitHub issues using mini-swe-agent",
     )
     parser.add_argument(
-        "--repo", "-r",
+        "--dataset", "-d",
         required=True,
-        help="GitHub repository (owner/repo)",
+        help="HuggingFace dataset name",
     )
     parser.add_argument(
-        "--issue", "-i",
-        type=int,
-        required=True,
-        help="Issue number to solve",
+        "--split", "-s",
+        default="test",
+        help="Dataset split to use (default: test)",
     )
     parser.add_argument(
         "--model", "-m",
         action="append",
         dest="models",
         default=[],
-        help="Model to use (can specify multiple). Default: gpt-4o-mini",
+        help="Model to use in LiteLLM format.",
+    )
+    parser.add_argument(
+        "--limit", "-l",
+        type=int,
+        default=None,
+        help="Maximum number of issues to process (default: all)",
     )
     parser.add_argument(
         "--output", "-o",
@@ -38,37 +44,23 @@ def main() -> None:
         default=DEFAULT_SOLUTIONS_DIR,
         help=f"Output directory for solutions (default: {DEFAULT_SOLUTIONS_DIR})",
     )
-    parser.add_argument(
-        "--litellm-url",
-        default="http://localhost:4000",
-        help="LiteLLM proxy URL (default: http://localhost:4000)",
-    )
 
     args = parser.parse_args()
 
-    # Parse models - default to gpt-4o-mini if none specified
-    models = []
-    for m in args.models or ["gpt-4o-mini"]:
-        if ":" in m:
-            name, provider = m.split(":", 1)
-        else:
-            name, provider = m, "openai"
-        models.append((name, provider))
+    # Default model if none specified
+    models = args.models or ["openai/gpt-4o-mini"]
+
+    # Load dataset
+    print(f"Loading dataset: {args.dataset} (split: {args.split})")
+    dataset = IssueDataset(args.dataset, split=args.split)
+    print(f"Found {len(dataset)} issues")
 
     # Run pipeline
-    print(f"Generating solutions for {args.repo}#{args.issue}")
-    print(f"Models: {', '.join(f'{name}:{provider}' for name, provider in models)}")
+    print(f"Models: {', '.join(models)}")
     print()
 
-    pipeline = Pipeline(
-        solutions_dir=args.output,
-        litellm_base_url=args.litellm_url,
-    )
-    pipeline.run_single(
-        repo=args.repo,
-        issue_number=args.issue,
-        models=models,
-    )
+    pipeline = Pipeline(solutions_dir=args.output)
+    pipeline.run(dataset=dataset, models=models, limit=args.limit)
 
     print("\nDone!")
 

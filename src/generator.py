@@ -14,17 +14,19 @@ PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 class SolutionGenerator:
     """Generates solutions using mini-swe-agent."""
 
-    def __init__(self, litellm_base_url: str = "http://localhost:4000"):
-        self.litellm_base_url = litellm_base_url
-
     def generate(
         self,
         issue: Issue,
-        model_name: str,
-        provider: str,
+        model: str,
         timeout: int = DEFAULT_TIMEOUT,
     ) -> Solution:
-        """Generate a solution for an issue using a specific model."""
+        """Generate a solution for an issue using a specific model.
+
+        Args:
+            issue: The issue to solve.
+            model: Model name in LiteLLM format (e.g., "anthropic/claude-sonnet-4-5-20250929").
+            timeout: Timeout in seconds.
+        """
         workspace_base = PROJECT_ROOT / "data" / "workspaces"
         workspace_base.mkdir(parents=True, exist_ok=True)
 
@@ -34,17 +36,20 @@ class SolutionGenerator:
         if workspace.exists():
             shutil.rmtree(workspace)
 
+        # Extract provider from model name (e.g., "anthropic/claude-..." -> "anthropic")
+        provider = model.split("/")[0] if "/" in model else "unknown"
+
         try:
             self._clone_repo(issue.repo, workspace)
             prompt = self._build_prompt(issue)
 
             start = datetime.now()
-            output, diff = self._run_agent(workspace, model_name, prompt, timeout)
+            output, diff = self._run_agent(workspace, model, prompt, timeout)
             duration_ms = int((datetime.now() - start).total_seconds() * 1000)
 
             return Solution(
                 issue_id=issue.id,
-                model=model_name,
+                model=model,
                 provider=provider,
                 diff=diff,
                 output=output,
@@ -81,6 +86,5 @@ Implement the solution. Only modify the necessary files."""
         prompt: str,
         timeout: int,
     ) -> tuple[str, str]:
-        """Run mini-swe-agent and return (output, diff).
-        """
+        """Run mini-swe-agent and return (output, diff)."""
         raise NotImplementedError("Agent integration not yet implemented")
