@@ -26,13 +26,14 @@ class IssueDataset:
 
     def __getitem__(self, idx: int) -> Issue:
         row = self._dataset[idx]
+        labels = row.get("labels") or []
         return Issue(
             id=row["id"],
             repo=row["repo"],
             number=row["number"],
             title=row["title"],
             body=row["body"],
-            labels=row.get("labels", []),
+            labels=labels,
         )
 
     def __iter__(self) -> Iterator[Issue]:
