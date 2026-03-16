@@ -4,6 +4,7 @@ import json
 import re
 from dataclasses import asdict
 from pathlib import Path
+from uuid import uuid4
 
 from .models import Solution
 
@@ -19,8 +20,8 @@ class SolutionStorage:
         """Save a solution to disk and return the file path."""
         filename = self._make_filename(solution)
         path = self.base_path / filename
-        # Atomic write: write to temp file then rename
-        temp_path = path.with_suffix(".tmp")
+        # Atomic write: unique temp file avoids cross-process collisions
+        temp_path = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
         with open(temp_path, "w", encoding="utf-8") as f:
             json.dump(asdict(solution), f, indent=2, ensure_ascii=False)
         temp_path.replace(path)
