@@ -135,12 +135,16 @@ Implement the solution. Only modify the necessary files."""
         trajectory = json.dumps(agent.serialize(), indent=2)
 
         # Get git diff
-        diff_result = subprocess.run(
-            ["git", "diff"],
-            cwd=workspace,
-            capture_output=True,
-            text=True,
-        )
-        diff = diff_result.stdout
+        try:
+            diff_result = subprocess.run(
+                ["git", "diff"],
+                cwd=workspace,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            diff = diff_result.stdout
+        except subprocess.CalledProcessError as e:
+            diff = f"git diff failed (rc={e.returncode}): {e.stderr}"
 
         return trajectory, diff

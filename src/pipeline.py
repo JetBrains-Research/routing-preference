@@ -1,5 +1,6 @@
 """Pipeline orchestration for solution generation."""
 
+import traceback
 from pathlib import Path
 
 from .dataset import IssueDataset
@@ -29,7 +30,7 @@ class Pipeline:
             limit: Maximum number of issues to process (default: all).
         """
         issues = list(dataset)
-        if limit:
+        if limit is not None:
             issues = issues[:limit]
 
         print(f"Processing {len(issues)} issues with {len(models)} models")
@@ -58,3 +59,4 @@ class Pipeline:
                 print(f"  Saved to {path.name} ({solution.duration_ms}ms)")
             except Exception as e:
                 print(f"  Failed: {e}")
+                traceback.print_exc()
