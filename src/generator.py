@@ -9,6 +9,7 @@ import stat
 import subprocess
 from datetime import datetime
 from pathlib import Path
+import uuid
 
 from minisweagent.agents import get_agent
 from minisweagent.config import get_config_from_spec
@@ -123,12 +124,13 @@ class SolutionGenerator:
             ) from e
 
     def _make_workspace_name(self, issue: Issue) -> str:
-        """Generate a safe workspace directory name for an issue."""
+        """Generate a safe, per-run workspace directory name for an issue."""
         safe_repo = re.sub(r"[^A-Za-z0-9._-]", "_", issue.repo or "repo")
         safe_repo = safe_repo.strip("._-") or "repo"
         if len(safe_repo) > 100:
             safe_repo = safe_repo[:100]
-        return f"{safe_repo}_{issue.number}"
+        suffix = uuid.uuid4().hex[:8]
+        return f"{safe_repo}_{issue.number}_{suffix}"
 
     def _build_prompt(self, issue: Issue) -> str:
         """Build the prompt for the agent."""
