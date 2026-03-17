@@ -5,7 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from .dataset import IssueDataset
+from .dataset import load_issues
 from .pipeline import Pipeline
 
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
@@ -22,7 +22,7 @@ def main() -> None:
     parser.add_argument(
         "--dataset", "-d",
         required=True,
-        help="HuggingFace dataset name",
+        help="HuggingFace dataset name or path to local JSON file",
     )
     parser.add_argument(
         "--split", "-s",
@@ -55,8 +55,8 @@ def main() -> None:
     models = args.models or ["openai/gpt-4o-mini"]
 
     # Load dataset
-    print(f"Loading dataset: {args.dataset} (split: {args.split})")
-    dataset = IssueDataset(args.dataset, split=args.split)
+    print(f"Loading dataset: {args.dataset}")
+    dataset = load_issues(args.dataset, split=args.split)
     print(f"Found {len(dataset)} issues")
 
     # Run pipeline
