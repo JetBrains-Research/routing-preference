@@ -16,7 +16,8 @@ def load_issues(source: str, split: str = "test") -> "IssueDataset":
         source: HuggingFace dataset name or path to local JSON file.
         split: Dataset split (only used for HuggingFace datasets).
     """
-    if source.endswith(".json") or Path(source).exists():
+    path = Path(source)
+    if path.is_file() and path.suffix == ".json":
         return LocalIssueDataset(source)
     return HuggingFaceIssueDataset(source, split)
 
@@ -64,7 +65,7 @@ class LocalIssueDataset(IssueDataset):
 
     def __init__(self, path: str):
         self.path = Path(path)
-        with open(self.path) as f:
+        with self.path.open(encoding="utf-8") as f:
             self._issues = json.load(f)
 
     def __len__(self) -> int:
