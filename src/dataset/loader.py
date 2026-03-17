@@ -17,7 +17,7 @@ def load_issues(source: str, split: str = "test") -> "IssueDataset":
         split: Dataset split (only used for HuggingFace datasets).
     """
     path = Path(source)
-    if path.is_file() and path.suffix == ".json":
+    if path.suffix == ".json":
         return LocalIssueDataset(source)
     return HuggingFaceIssueDataset(source, split)
 
@@ -51,7 +51,7 @@ class HuggingFaceIssueDataset(IssueDataset):
         row = self._dataset[idx]
         labels = row.get("labels") or []
         return Issue(
-            id=row["id"],
+            id=str(row["id"]),
             repo=row["repo"],
             number=row["number"],
             title=row["title"],
@@ -61,7 +61,10 @@ class HuggingFaceIssueDataset(IssueDataset):
 
 
 class LocalIssueDataset(IssueDataset):
-    """Load issues from a local JSON file."""
+    """Load issues from a local JSON file.
+
+    Expected format: list of objects with keys: id, repo, number, title, body, labels (optional).
+    """
 
     def __init__(self, path: str):
         self.path = Path(path)
@@ -75,7 +78,7 @@ class LocalIssueDataset(IssueDataset):
         row = self._issues[idx]
         labels = row.get("labels") or []
         return Issue(
-            id=row["id"],
+            id=str(row["id"]),
             repo=row["repo"],
             number=row["number"],
             title=row["title"],
