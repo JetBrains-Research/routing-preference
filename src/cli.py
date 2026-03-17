@@ -55,7 +55,7 @@ def main() -> None:
     models = args.models or ["openai/gpt-4o-mini"]
 
     # Load dataset
-    print(f"Loading dataset: {args.dataset}")
+    print(f"Loading dataset: {args.dataset} (split: {args.split})")
     dataset = load_issues(args.dataset, split=args.split)
     print(f"Found {len(dataset)} issues")
 
