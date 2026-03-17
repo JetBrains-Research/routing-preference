@@ -21,7 +21,7 @@ The broader goal is **Model Routing** - not shifting all usage to cheaper models
 |------|-------------|--------|
 | 1 | Small, self-hosted | Qwen-8b |
 | 2 | Medium, cloud-hosted (low cost) | Qwen-32b, Qwen-235b, GLM-4.7 |
-| 3 | Large SOTA | GPT-5.2, Claude 4.6 Opus*, Kimi-k2 |
+| 3 | Large SOTA | GPT-5.2, Claude 4.6 Opus, Kimi-k2 |
 
 ### Provider Considerations
 
