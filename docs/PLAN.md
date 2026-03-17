@@ -2,7 +2,7 @@
 
 ## Current State
 
-The solution generation pipeline is implemented:
+The solution generation pipeline is implemented.
 
 ## Phase 0: Pipeline Validation
 
