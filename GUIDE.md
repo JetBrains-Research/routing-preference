@@ -29,10 +29,6 @@ cp .env.example .env
 # Edit .env with your API keys
 ```
 
-Required keys depend on which models you want to use:
-- `OPENAI_API_KEY` - For GPT models
-- `ANTHROPIC_API_KEY` - For Claude models
-
 ## Running
 
 Generate solutions from the HuggingFace dataset:
@@ -47,15 +43,6 @@ uv run generate --dataset "not/created/yet" --model openai/gpt-4o-mini --limit 5
 # Using make
 make generate DATASET=not/created/yet MODEL=openai/gpt-4o-mini
 ```
-
-## Available Models
-
-Models are specified in LiteLLM format (`provider/model`):
-
-| Provider | Models |
-|----------|--------|
-| OpenAI | `openai/gpt-4o-mini`, `openai/gpt-4o` |
-| Anthropic | `anthropic/claude-sonnet-4-5-20250929`, `anthropic/claude-opus-4-5` |
 
 ## Output
 
