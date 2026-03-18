@@ -13,6 +13,7 @@ class Issue:
     title: str
     body: str
     labels: list[str]
+    base_commit: str | None = None
 
 
 @dataclass
