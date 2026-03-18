@@ -169,7 +169,7 @@ class SolutionGenerator:
         """Checkout a specific commit in the workspace."""
         try:
             subprocess.run(
-                ["git", "checkout", "--", commit],
+                ["git", "checkout", "--detach", commit],
                 cwd=workspace,
                 check=True,
                 capture_output=True,
