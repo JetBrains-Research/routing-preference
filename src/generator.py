@@ -82,9 +82,14 @@ class SolutionGenerator:
         provider = model.split("/")[0] if "/" in model else "unknown"
 
         try:
-            self._clone_repo(issue.repo, workspace, base_commit=issue.base_commit)
+            self._clone_repo(
+                issue.repo,
+                workspace,
+                timeout=timeout,
+                base_commit=issue.base_commit,
+            )
             if issue.base_commit:
-                self._checkout_commit(workspace, issue.base_commit)
+                self._checkout_commit(workspace, issue.base_commit, timeout=timeout)
             prompt = self._build_prompt(issue)
 
             start = datetime.now()
@@ -112,10 +117,8 @@ class SolutionGenerator:
         base_commit: str | None = None,
     ) -> None:
         """Clone a repository to the destination path."""
-        # Use shallow clone only if no specific commit is needed
-        cmd = ["gh", "repo", "clone", repo, str(dest)]
-        if not base_commit:
-            cmd.extend(["--", "--depth", "1"])
+        # Always use shallow clone for efficiency
+        cmd = ["gh", "repo", "clone", repo, str(dest), "--", "--depth", "1"]
         try:
             subprocess.run(
                 cmd,
@@ -135,16 +138,49 @@ class SolutionGenerator:
                 f"stderr: {e.stderr or ''}"
             ) from e
 
-    def _checkout_commit(self, workspace: Path, commit: str) -> None:
+        # Fetch specific commit if needed
+        if base_commit:
+            try:
+                subprocess.run(
+                    ["git", "fetch", "--depth", "1", "origin", base_commit],
+                    cwd=dest,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                )
+            except subprocess.TimeoutExpired as e:
+                raise RuntimeError(
+                    f"git fetch timed out after {timeout}s for {base_commit}.\n"
+                    f"stderr: {e.stderr or ''}"
+                ) from e
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(
+                    f"git fetch failed for {base_commit} (rc={e.returncode}).\n"
+                    f"stderr: {e.stderr or ''}"
+                ) from e
+
+    def _checkout_commit(
+        self,
+        workspace: Path,
+        commit: str,
+        timeout: int = DEFAULT_TIMEOUT,
+    ) -> None:
         """Checkout a specific commit in the workspace."""
         try:
             subprocess.run(
-                ["git", "checkout", commit],
+                ["git", "checkout", "--", commit],
                 cwd=workspace,
                 check=True,
                 capture_output=True,
                 text=True,
+                timeout=timeout,
             )
+        except subprocess.TimeoutExpired as e:
+            raise RuntimeError(
+                f"git checkout timed out after {timeout}s for {commit}.\n"
+                f"stderr: {e.stderr or ''}"
+            ) from e
         except subprocess.CalledProcessError as e:
             raise RuntimeError(
                 f"git checkout failed for {commit}.\n"

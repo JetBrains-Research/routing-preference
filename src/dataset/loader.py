@@ -50,6 +50,7 @@ class HuggingFaceIssueDataset(IssueDataset):
     def __getitem__(self, idx: int) -> Issue:
         row = self._dataset[idx]
         labels = row.get("labels") or []
+        base_commit = row.get("base_commit")
         return Issue(
             id=str(row["id"]),
             repo=row["repo"],
@@ -57,7 +58,7 @@ class HuggingFaceIssueDataset(IssueDataset):
             title=row["title"],
             body=row["body"],
             labels=labels,
-            base_commit=row.get("base_commit"),
+            base_commit=str(base_commit) if base_commit else None,
         )
 
 
@@ -78,6 +79,7 @@ class LocalIssueDataset(IssueDataset):
     def __getitem__(self, idx: int) -> Issue:
         row = self._issues[idx]
         labels = row.get("labels") or []
+        base_commit = row.get("base_commit")
         return Issue(
             id=str(row["id"]),
             repo=row["repo"],
@@ -85,5 +87,5 @@ class LocalIssueDataset(IssueDataset):
             title=row["title"],
             body=row["body"],
             labels=labels,
-            base_commit=row.get("base_commit"),
+            base_commit=str(base_commit) if base_commit else None,
         )
