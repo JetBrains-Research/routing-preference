@@ -117,8 +117,11 @@ class SolutionGenerator:
         base_commit: str | None = None,
     ) -> None:
         """Clone a repository to the destination path."""
-        # Always use shallow clone for efficiency
-        cmd = ["gh", "repo", "clone", repo, str(dest), "--", "--depth", "1"]
+        # Use shallow clone only if no specific commit needed
+        # GitHub doesn't allow fetching arbitrary commits by SHA in shallow clones
+        cmd = ["gh", "repo", "clone", repo, str(dest)]
+        if not base_commit:
+            cmd.extend(["--", "--depth", "1"])
         try:
             subprocess.run(
                 cmd,
@@ -137,28 +140,6 @@ class SolutionGenerator:
                 f"gh repo clone failed for {repo} (rc={e.returncode}).\n"
                 f"stderr: {e.stderr or ''}"
             ) from e
-
-        # Fetch specific commit if needed
-        if base_commit:
-            try:
-                subprocess.run(
-                    ["git", "fetch", "--depth", "1", "origin", base_commit],
-                    cwd=dest,
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout,
-                )
-            except subprocess.TimeoutExpired as e:
-                raise RuntimeError(
-                    f"git fetch timed out after {timeout}s for {base_commit}.\n"
-                    f"stderr: {e.stderr or ''}"
-                ) from e
-            except subprocess.CalledProcessError as e:
-                raise RuntimeError(
-                    f"git fetch failed for {base_commit} (rc={e.returncode}).\n"
-                    f"stderr: {e.stderr or ''}"
-                ) from e
 
     def _checkout_commit(
         self,
