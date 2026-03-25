@@ -50,6 +50,7 @@ class HuggingFaceIssueDataset(IssueDataset):
     def __getitem__(self, idx: int) -> Issue:
         row = self._dataset[idx]
         labels = row.get("labels") or []
+        base_commit = row.get("base_commit")
         return Issue(
             id=str(row["id"]),
             repo=row["repo"],
@@ -57,13 +58,14 @@ class HuggingFaceIssueDataset(IssueDataset):
             title=row["title"],
             body=row["body"],
             labels=labels,
+            base_commit=str(base_commit) if base_commit else None,
         )
 
 
 class LocalIssueDataset(IssueDataset):
     """Load issues from a local JSON file.
 
-    Expected format: list of objects with keys: id, repo, number, title, body, labels (optional).
+    Expected format: list of objects with keys: id, repo, number, title, body, labels (optional), base_commit (optional).
     """
 
     def __init__(self, path: str):
@@ -77,6 +79,7 @@ class LocalIssueDataset(IssueDataset):
     def __getitem__(self, idx: int) -> Issue:
         row = self._issues[idx]
         labels = row.get("labels") or []
+        base_commit = row.get("base_commit")
         return Issue(
             id=str(row["id"]),
             repo=row["repo"],
@@ -84,4 +87,5 @@ class LocalIssueDataset(IssueDataset):
             title=row["title"],
             body=row["body"],
             labels=labels,
+            base_commit=str(base_commit) if base_commit else None,
         )
