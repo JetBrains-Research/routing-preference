@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
-from .models import Solution
+from .models import Issue, Solution
 
 
 class SolutionStorage:
@@ -29,10 +29,11 @@ class SolutionStorage:
         self.base_path = base_path
         self.base_path.mkdir(parents=True, exist_ok=True)
 
-    def save(self, solution: Solution) -> Path:
-        """Save a solution to its own folder and return the folder path.
+    def save(self, solution: Solution, issue: Issue) -> Path:
+        """Save a solution and its issue to a folder.
 
         Creates:
+            issue.json - The issue in JSON format
             solution.json - Full solution data with trajectory
             patch.diff - Git diff of the solution
         """
@@ -40,18 +41,18 @@ class SolutionStorage:
         folder_path = self.base_path / folder_name
         folder_path.mkdir(parents=True, exist_ok=True)
 
-        # Save solution.json
-        json_path = folder_path / "solution.json"
-        temp_path = json_path.with_name(f"{json_path.name}.{uuid4().hex}.tmp")
-        with open(temp_path, "w", encoding="utf-8") as f:
-            json.dump(asdict(solution), f, indent=2, ensure_ascii=False)
-        temp_path.replace(json_path)
+        # Save issue.json
+        issue_path = folder_path / "issue.json"
+        self._atomic_write(issue_path, json.dumps(asdict(issue), indent=2, ensure_ascii=False))
 
-        # Save patch.diff separately for easy access
+        # Save solution.json
+        solution_path = folder_path / "solution.json"
+        self._atomic_write(solution_path, json.dumps(asdict(solution), indent=2, ensure_ascii=False))
+
+        # Save patch.diff
         if solution.diff:
             diff_path = folder_path / "patch.diff"
-            with open(diff_path, "w", encoding="utf-8") as f:
-                f.write(solution.diff)
+            self._atomic_write(diff_path, solution.diff)
 
         return folder_path
 
@@ -72,6 +73,13 @@ class SolutionStorage:
                 if solution_file.exists():
                     solutions.append(self.load(solution_file))
         return solutions
+
+    def _atomic_write(self, path: Path, content: str) -> None:
+        """Write content to a file atomically using temp file + replace."""
+        temp_path = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
+        with open(temp_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        temp_path.replace(path)
 
     def _sanitize(self, value: str) -> str:
         """Sanitize a string for use in a filename."""
