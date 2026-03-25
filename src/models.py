@@ -13,6 +13,7 @@ class Issue:
     title: str
     body: str
     labels: list[str]
+    base_commit: str | None = None
 
 
 @dataclass
@@ -23,6 +24,6 @@ class Solution:
     model: str
     provider: str
     diff: str
-    output: str
+    trajectory: dict
     duration_ms: int
     created_at: str

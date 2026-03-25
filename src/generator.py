@@ -1,6 +1,5 @@
 """Solution generation using mini-swe-agent."""
 
-import json
 import logging
 import os
 import re
@@ -82,11 +81,18 @@ class SolutionGenerator:
         provider = model.split("/")[0] if "/" in model else "unknown"
 
         try:
-            self._clone_repo(issue.repo, workspace)
+            self._clone_repo(
+                issue.repo,
+                workspace,
+                timeout=timeout,
+                base_commit=issue.base_commit,
+            )
+            if issue.base_commit:
+                self._checkout_commit(workspace, issue.base_commit, timeout=timeout)
             prompt = self._build_prompt(issue)
 
             start = datetime.now()
-            output, diff = self._run_agent(workspace, model, prompt, timeout)
+            trajectory, diff = self._run_agent(workspace, model, prompt, timeout)
             duration_ms = int((datetime.now() - start).total_seconds() * 1000)
 
             return Solution(
@@ -94,7 +100,7 @@ class SolutionGenerator:
                 model=model,
                 provider=provider,
                 diff=diff,
-                output=output,
+                trajectory=trajectory,
                 duration_ms=duration_ms,
                 created_at=datetime.now().isoformat(),
             )
@@ -102,11 +108,22 @@ class SolutionGenerator:
             if workspace.exists():
                 self._remove_workspace(workspace)
 
-    def _clone_repo(self, repo: str, dest: Path, timeout: int = DEFAULT_TIMEOUT) -> None:
+    def _clone_repo(
+        self,
+        repo: str,
+        dest: Path,
+        timeout: int = DEFAULT_TIMEOUT,
+        base_commit: str | None = None,
+    ) -> None:
         """Clone a repository to the destination path."""
+        # Use shallow clone only if no specific commit needed
+        # GitHub doesn't allow fetching arbitrary commits by SHA in shallow clones
+        cmd = ["gh", "repo", "clone", repo, str(dest)]
+        if not base_commit:
+            cmd.extend(["--", "--depth", "1"])
         try:
             subprocess.run(
-                ["gh", "repo", "clone", repo, str(dest), "--", "--depth", "1"],
+                cmd,
                 check=True,
                 capture_output=True,
                 text=True,
@@ -120,6 +137,33 @@ class SolutionGenerator:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(
                 f"gh repo clone failed for {repo} (rc={e.returncode}).\n"
+                f"stderr: {e.stderr or ''}"
+            ) from e
+
+    def _checkout_commit(
+        self,
+        workspace: Path,
+        commit: str,
+        timeout: int = DEFAULT_TIMEOUT,
+    ) -> None:
+        """Checkout a specific commit in the workspace."""
+        try:
+            subprocess.run(
+                ["git", "checkout", "--detach", commit],
+                cwd=workspace,
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as e:
+            raise RuntimeError(
+                f"git checkout timed out after {timeout}s for {commit}.\n"
+                f"stderr: {e.stderr or ''}"
+            ) from e
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(
+                f"git checkout failed for {commit}.\n"
                 f"stderr: {e.stderr or ''}"
             ) from e
 
@@ -149,8 +193,8 @@ Implement the solution. Only modify the necessary files."""
         model_name: str,
         prompt: str,
         timeout: int,
-    ) -> tuple[str, str]:
-        """Run mini-swe-agent and return (trajectory_json, diff).
+    ) -> tuple[dict, str]:
+        """Run mini-swe-agent and return (trajectory, diff).
 
         Args:
             workspace: Path to the cloned repository.
@@ -159,7 +203,7 @@ Implement the solution. Only modify the necessary files."""
             timeout: Timeout in seconds for each command.
 
         Returns:
-            Tuple of (trajectory as JSON string, git diff).
+            Tuple of (trajectory dict, git diff).
         """
         # Load default config and merge with our settings
         base_config = get_config_from_spec("default")
@@ -169,13 +213,14 @@ Implement the solution. Only modify the necessary files."""
                 "model": {
                     "model_name": model_name,
                     "cost_tracking": "ignore_errors",
+                    "model_class": "litellm_textbased",
                 },
                 "environment": {
                     "cwd": str(workspace),
                     "timeout": timeout,
                 },
                 "agent": {
-                    "cost_limit": 10.0,  # $10 limit per issue
+                    "cost_limit": 10.0,
                 },
             },
         )
@@ -188,8 +233,8 @@ Implement the solution. Only modify the necessary files."""
         # Run the agent
         agent.run(prompt)
 
-        # Serialize the trajectory
-        trajectory = json.dumps(agent.serialize(), indent=2)
+        # Get the trajectory as dict
+        trajectory = agent.serialize()
 
         # Get git diff
         try:
