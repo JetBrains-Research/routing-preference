@@ -24,6 +24,6 @@ class Solution:
     model: str
     provider: str
     diff: str
-    output: str
+    trajectory: dict
     duration_ms: int
     created_at: str
