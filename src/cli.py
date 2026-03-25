@@ -58,11 +58,10 @@ def main() -> None:
     print(f"Loading dataset: {args.dataset} (split: {args.split})")
     dataset = load_issues(args.dataset, split=args.split)
     print(f"Found {len(dataset)} issues")
-
-    # Run pipeline
     print(f"Models: {', '.join(models)}")
     print()
 
+    # Run pipeline
     pipeline = Pipeline(solutions_dir=args.output)
     pipeline.run(dataset=dataset, models=models, limit=args.limit)
 

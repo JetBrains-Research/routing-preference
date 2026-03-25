@@ -1,6 +1,5 @@
 """Solution generation using mini-swe-agent."""
 
-import json
 import logging
 import os
 import re
@@ -93,7 +92,7 @@ class SolutionGenerator:
             prompt = self._build_prompt(issue)
 
             start = datetime.now()
-            output, diff = self._run_agent(workspace, model, prompt, timeout)
+            trajectory, diff = self._run_agent(workspace, model, prompt, timeout)
             duration_ms = int((datetime.now() - start).total_seconds() * 1000)
 
             return Solution(
@@ -101,7 +100,7 @@ class SolutionGenerator:
                 model=model,
                 provider=provider,
                 diff=diff,
-                output=output,
+                trajectory=trajectory,
                 duration_ms=duration_ms,
                 created_at=datetime.now().isoformat(),
             )
@@ -194,8 +193,8 @@ Implement the solution. Only modify the necessary files."""
         model_name: str,
         prompt: str,
         timeout: int,
-    ) -> tuple[str, str]:
-        """Run mini-swe-agent and return (trajectory_json, diff).
+    ) -> tuple[dict, str]:
+        """Run mini-swe-agent and return (trajectory, diff).
 
         Args:
             workspace: Path to the cloned repository.
@@ -204,7 +203,7 @@ Implement the solution. Only modify the necessary files."""
             timeout: Timeout in seconds for each command.
 
         Returns:
-            Tuple of (trajectory as JSON string, git diff).
+            Tuple of (trajectory dict, git diff).
         """
         # Load default config and merge with our settings
         base_config = get_config_from_spec("default")
@@ -214,13 +213,14 @@ Implement the solution. Only modify the necessary files."""
                 "model": {
                     "model_name": model_name,
                     "cost_tracking": "ignore_errors",
+                    "model_class": "litellm_textbased",
                 },
                 "environment": {
                     "cwd": str(workspace),
                     "timeout": timeout,
                 },
                 "agent": {
-                    "cost_limit": 10.0,  # $10 limit per issue
+                    "cost_limit": 10.0,
                 },
             },
         )
@@ -233,8 +233,8 @@ Implement the solution. Only modify the necessary files."""
         # Run the agent
         agent.run(prompt)
 
-        # Serialize the trajectory
-        trajectory = json.dumps(agent.serialize(), indent=2)
+        # Get the trajectory as dict
+        trajectory = agent.serialize()
 
         # Get git diff
         try:
