@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
-from .models import Solution
+from .models import Issue, Solution
 
 
 class SolutionStorage:
@@ -29,16 +29,22 @@ class SolutionStorage:
         self.base_path = base_path
         self.base_path.mkdir(parents=True, exist_ok=True)
 
-    def save(self, solution: Solution) -> Path:
-        """Save a solution to its own folder and return the folder path.
+    def save(self, solution: Solution, issue: Issue) -> Path:
+        """Save a solution and its issue to a folder.
 
         Creates:
+            issue.json - The issue in JSON format
             solution.json - Full solution data with trajectory
             patch.diff - Git diff of the solution
         """
         folder_name = self._make_folder_name(solution)
         folder_path = self.base_path / folder_name
         folder_path.mkdir(parents=True, exist_ok=True)
+
+        # Save issue.json
+        issue_path = folder_path / "issue.json"
+        with open(issue_path, "w", encoding="utf-8") as f:
+            json.dump(asdict(issue), f, indent=2, ensure_ascii=False)
 
         # Save solution.json
         json_path = folder_path / "solution.json"

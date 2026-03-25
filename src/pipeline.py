@@ -64,7 +64,7 @@ class Pipeline:
             )
             try:
                 solution = self.generator.generate(issue, model)
-                path = self.storage.save(solution)
+                path = self.storage.save(solution, issue)
                 logger.info(
                     "Saved solution to %s (%dms)",
                     path.name,
