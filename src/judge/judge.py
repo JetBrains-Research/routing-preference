@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from src.models import Issue, Solution
+from ..models import Issue, Solution
 
 from .characteristics import CHARACTERISTICS
 from .models import Judgment, Score

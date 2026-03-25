@@ -4,7 +4,7 @@ import json
 import logging
 from pathlib import Path
 
-from src.models import Issue, Solution
+from .models import Issue, Solution
 
 from .judge.judge import Judge
 from .judge.storage import JudgmentStorage

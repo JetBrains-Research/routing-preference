@@ -4,7 +4,7 @@ import re
 
 import litellm
 
-from src.models import Issue, Solution
+from ..models import Issue, Solution
 
 from .models import Characteristic, Score
 
