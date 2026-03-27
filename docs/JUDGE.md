@@ -99,11 +99,11 @@ Example:
   "rankings": [
     {
       "characteristic_id": "correctness",
-      "ranks": {"openai/gpt-4o": 1, "anthropic/claude-sonnet-4-20250514": 2, "openai/gpt-4o-mini": 3},
+      "ranks": {"openai/gpt-4o": 1, "anthropic/claude-sonnet-4": 2, "openai/gpt-4o-mini": 3},
       "reasoning": "..."
     }
   ],
-  "overall_ranks": {"openai/gpt-4o": 1.5, "anthropic/claude-sonnet-4-20250514": 2.0, "openai/gpt-4o-mini": 2.5},
+  "overall_ranks": {"openai/gpt-4o": 1.5, "anthropic/claude-sonnet-4": 2.0, "openai/gpt-4o-mini": 2.5},
   "created_at": "2026-03-25T23:45:00"
 }
 ```
