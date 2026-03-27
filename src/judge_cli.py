@@ -31,10 +31,14 @@ def find_solutions_for_issue(
         if not solution_file.exists() or not issue_file.exists():
             continue
 
-        with open(issue_file, encoding="utf-8") as f:
-            issue = Issue(**json.load(f))
-        with open(solution_file, encoding="utf-8") as f:
-            solution = Solution(**json.load(f))
+        try:
+            with open(issue_file, encoding="utf-8") as f:
+                issue = Issue(**json.load(f))
+            with open(solution_file, encoding="utf-8") as f:
+                solution = Solution(**json.load(f))
+        except (OSError, json.JSONDecodeError, TypeError, ValueError) as e:
+            print(f"Warning: Skipping {folder.name} due to error: {e}")
+            continue
 
         if issue.id == issue_id:
             results.append((folder, issue, solution))
