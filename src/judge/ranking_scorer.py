@@ -108,6 +108,7 @@ Reasoning: <your explanation for the ranking>
     ) -> Ranking:
         """Parse LLM response into a Ranking."""
         ranks: dict[str, int] = {}
+        num_solutions = len(solutions)
 
         # Parse "Solution N: <rank>" patterns
         for i, sol in enumerate(solutions, 1):
@@ -116,7 +117,22 @@ Reasoning: <your explanation for the ranking>
             if match:
                 ranks[sol.model] = int(match.group(1))
             else:
-                ranks[sol.model] = len(solutions)
+                raise ValueError(
+                    f"Could not parse rank for Solution {i} from response: {response[:200]}"
+                )
+
+        # Validate ranks are in valid range
+        rank_values = list(ranks.values())
+        if not all(1 <= r <= num_solutions for r in rank_values):
+            raise ValueError(
+                f"Ranks must be between 1 and {num_solutions}, got {rank_values}"
+            )
+
+        # Validate ranks are unique (no ties)
+        if len(set(rank_values)) != num_solutions:
+            raise ValueError(
+                f"Ranks must be unique (1..{num_solutions}), got {rank_values}"
+            )
 
         reasoning_match = re.search(
             r"Reasoning:\s*(.+)", response, re.IGNORECASE | re.DOTALL

@@ -16,18 +16,14 @@ PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 DEFAULT_SOLUTIONS_DIR = PROJECT_ROOT / "data" / "solutions"
 DEFAULT_RANKINGS_DIR = PROJECT_ROOT / "data" / "rankings"
 
-logger = logging.getLogger(__name__)
-
 
 def find_solutions_for_issue(
     solutions_dir: Path, issue_id: str
 ) -> list[tuple[Path, Issue, Solution]]:
     """Find all solutions for a given issue ID."""
     results = []
-    for folder in solutions_dir.iterdir():
+    for folder in sorted(solutions_dir.iterdir()):
         if not folder.is_dir():
-            continue
-        if issue_id not in folder.name:
             continue
 
         solution_file = folder / "solution.json"
@@ -129,12 +125,15 @@ def main() -> None:
         default="openai/gpt-4o",
         help="Model to use for judging (default: openai/gpt-4o)",
     )
-    parser.add_argument(
+
+    # Mutually exclusive: score a specific solution OR rank all solutions for an issue
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
         "--solution",
         type=str,
         help="Score a specific solution folder",
     )
-    parser.add_argument(
+    mode_group.add_argument(
         "--rank",
         type=str,
         metavar="ISSUE_ID",
