@@ -27,8 +27,7 @@ export ROUTING_SANDBOX_IMAGE=routing-sandbox:latest
 
 Docker mode forwards these to the container:
 - `GITHUB_TOKEN` / `GH_TOKEN`
-- `OPENAI_API_KEY`
-- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, `GROQ_API_KEY`
 
 ## Security Notes
 
