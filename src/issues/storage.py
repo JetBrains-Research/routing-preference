@@ -89,10 +89,13 @@ class IssueStorage:
         if not file_path.exists():
             return None
 
-        with open(file_path, encoding="utf-8") as f:
-            data = json.load(f)
-
-        return self._dict_to_issue(data)
+        try:
+            with open(file_path, encoding="utf-8") as f:
+                data = json.load(f)
+            return self._dict_to_issue(data)
+        except (json.JSONDecodeError, TypeError, KeyError, ValueError) as e:
+            logger.warning("Failed to load %s: %s", file_path, e)
+            return None
 
     def load_batch(self, filename: str = "issues.json") -> list[CollectedIssue]:
         """Load multiple issues from a JSON file.
