@@ -125,7 +125,7 @@ class IssueStorage:
                 with open(file_path, encoding="utf-8") as f:
                     data = json.load(f)
                 yield self._dict_to_issue(data)
-            except (json.JSONDecodeError, TypeError, KeyError) as e:
+            except (json.JSONDecodeError, TypeError, KeyError, ValueError) as e:
                 logger.warning("Failed to load %s: %s", file_path, e)
 
     def exists(self, issue_id: str) -> bool:
