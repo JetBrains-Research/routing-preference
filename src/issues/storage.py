@@ -231,6 +231,7 @@ class HuggingFaceStorage:
                 "complexity": issue.complexity.value,
                 "base_commit": issue.base_commit,
                 "assigned_reviewer": issue.assigned_reviewer,
+                "reviewer_type": issue.reviewer_type,
             }
             records.append(record)
 
