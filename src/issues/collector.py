@@ -90,7 +90,7 @@ class IssueCollector:
 
         # Handle rate limiting
         if response.status_code == 403:
-            remaining = response.headers.get("X-RateLimit-Remaining", "0")
+            remaining = response.headers.get("X-RateLimit-Remaining")
             if remaining == "0" and retry_on_rate_limit:
                 reset_time = int(response.headers.get("X-RateLimit-Reset", 0))
                 wait_seconds = max(0, reset_time - time.time()) + 1
@@ -100,7 +100,11 @@ class IssueCollector:
                 )
                 time.sleep(wait_seconds)
                 return self._request(method, endpoint, params, retry_on_rate_limit=False)
-            raise RateLimitError("GitHub API rate limit exceeded")
+            # Check if it's actually a rate limit issue
+            if remaining == "0":
+                raise RateLimitError("GitHub API rate limit exceeded")
+            # Otherwise it's a forbidden error (no permission)
+            raise GitHubAPIError(f"Forbidden: {endpoint} - {response.text[:200]}")
 
         if response.status_code == 404:
             raise GitHubAPIError(f"Not found: {endpoint}")
@@ -110,7 +114,10 @@ class IssueCollector:
                 f"API error {response.status_code}: {response.text[:200]}"
             )
 
-        return response.json()
+        try:
+            return response.json()
+        except requests.JSONDecodeError as e:
+            raise GitHubAPIError(f"Invalid JSON response: {e}") from e
 
     def get_repository(self, owner: str, name: str) -> Repository:
         """Get repository metadata."""

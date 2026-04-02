@@ -76,12 +76,9 @@ class FilterStats:
     total_passed: int = 0
     filter_counts: dict[str, int] = field(default_factory=dict)
 
-    def record(self, filter_name: str, passed: bool) -> None:
-        self.total_processed += 1
-        if passed:
-            self.total_passed += 1
-        else:
-            self.filter_counts[filter_name] = self.filter_counts.get(filter_name, 0) + 1
+    def record_rejection(self, filter_name: str) -> None:
+        """Record that an issue was rejected by a specific filter."""
+        self.filter_counts[filter_name] = self.filter_counts.get(filter_name, 0) + 1
 
     def summary(self) -> str:
         lines = [
@@ -144,11 +141,15 @@ class IssueFilter:
         Returns:
             Tuple of (passed, reason). If passed is True, reason is empty.
         """
+        self.stats.total_processed += 1
+
         for filter_name, filter_func in self._filters:
             result = filter_func(issue)
-            self.stats.record(filter_name, result.passed)
             if not result.passed:
+                self.stats.record_rejection(filter_name)
                 return False, result.reason
+
+        self.stats.total_passed += 1
         return True, ""
 
     def filter_batch(
