@@ -254,7 +254,11 @@ Implement the solution. Only modify the necessary files."""
                     "DEEPSEEK_API_KEY",
                     "GROQ_API_KEY",
                 ],
-                "run_args": ["--rm", "-v", f"{workspace}:/workspace"],
+                "run_args": [
+                    "--rm",
+                    f"--user={os.getuid()}:{os.getgid()}",
+                    "-v", f"{workspace}:/workspace",
+                ],
             }
         else:
             env_config = {
