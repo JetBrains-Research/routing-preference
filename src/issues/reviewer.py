@@ -143,9 +143,10 @@ class ReviewerManager:
             )
             return issue
 
-        # Update reviewer's assignments
-        reviewer.assigned_issues.append(issue.id)
-        self._save()
+        # Update reviewer's assignments (avoid duplicates)
+        if issue.id not in reviewer.assigned_issues:
+            reviewer.assigned_issues.append(issue.id)
+            self._save()
 
         # Update issue
         issue.assigned_reviewer = reviewer.github_username
