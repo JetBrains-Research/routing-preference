@@ -24,8 +24,39 @@ DEFAULT_TIMEOUT = 600  # 10 minutes
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
 
+DOCKER_IMAGE = os.getenv("ROUTING_SANDBOX_IMAGE", "python:3.11-slim")
+
+
 class SolutionGenerator:
     """Generates solutions using mini-swe-agent."""
+
+    def __init__(self, environment_type: str = "local"):
+        """Initialize the solution generator.
+
+        Args:
+            environment_type: Execution environment ("local" or "docker").
+        """
+        if environment_type not in ("local", "docker"):
+            raise ValueError(f"Unknown environment type: {environment_type}")
+        if environment_type == "docker":
+            self._check_docker_available()
+        self.environment_type = environment_type
+
+    def _check_docker_available(self) -> None:
+        """Check if Docker is available and running."""
+        try:
+            subprocess.run(
+                ["docker", "version"],
+                capture_output=True,
+                check=True,
+                timeout=5,
+            )
+        except FileNotFoundError:
+            raise RuntimeError("Docker is not installed. Install Docker or use --sandbox local.")
+        except subprocess.CalledProcessError:
+            raise RuntimeError("Docker is not running. Start Docker Desktop or use --sandbox local.")
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("Docker is not responding. Check Docker status or use --sandbox local.")
 
     def _remove_workspace(self, workspace: Path) -> None:
         """Safely remove a workspace directory without masking underlying errors."""
@@ -207,6 +238,28 @@ Implement the solution. Only modify the necessary files."""
         """
         # Load default config and merge with our settings
         base_config = get_config_from_spec("default")
+
+        # Configure environment based on type
+        if self.environment_type == "docker":
+            env_config = {
+                "environment_class": "docker",
+                "image": DOCKER_IMAGE,
+                "cwd": "/workspace",
+                "timeout": timeout,
+                "forward_env": [
+                    "GITHUB_TOKEN",
+                    "GH_TOKEN",
+                    "OPENAI_API_KEY",
+                    "ANTHROPIC_API_KEY",
+                ],
+                "run_args": ["-v", f"{workspace}:/workspace"],
+            }
+        else:
+            env_config = {
+                "cwd": str(workspace),
+                "timeout": timeout,
+            }
+
         config = recursive_merge(
             base_config,
             {
@@ -215,10 +268,7 @@ Implement the solution. Only modify the necessary files."""
                     "cost_tracking": "ignore_errors",
                     "model_class": "litellm_textbased",
                 },
-                "environment": {
-                    "cwd": str(workspace),
-                    "timeout": timeout,
-                },
+                "environment": env_config,
                 "agent": {
                     "cost_limit": 10.0,
                 },
@@ -227,7 +277,7 @@ Implement the solution. Only modify the necessary files."""
 
         # Initialize components
         model = get_model(config=config.get("model", {}))
-        env = get_environment(config.get("environment", {}), default_type="local")
+        env = get_environment(config.get("environment", {}), default_type=self.environment_type)
         agent = get_agent(model, env, config.get("agent", {}), default_type="default")
 
         # Run the agent
