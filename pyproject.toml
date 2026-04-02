@@ -5,12 +5,16 @@ description = "Research pipeline for AI code solution generation"
 requires-python = ">=3.11"
 dependencies = [
     "datasets",
+    "langdetect",
+    "litellm",
     "mini-swe-agent",
     "python-dotenv",
+    "requests",
 ]
 
 [project.scripts]
 generate = "src.cli:main"
+collect-issues = "src.issues.cli:main"
 
 [dependency-groups]
 dev = []
