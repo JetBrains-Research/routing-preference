@@ -22,9 +22,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT = 600  # 10 minutes
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
-
-
-DOCKER_IMAGE = os.getenv("ROUTING_SANDBOX_IMAGE", "python:3.11-slim")
+DEFAULT_DOCKER_IMAGE = "python:3.11-slim"
 
 
 class SolutionGenerator:
@@ -241,9 +239,10 @@ Implement the solution. Only modify the necessary files."""
 
         # Configure environment based on type
         if self.environment_type == "docker":
+            docker_image = os.getenv("ROUTING_SANDBOX_IMAGE", DEFAULT_DOCKER_IMAGE)
             env_config = {
                 "environment_class": "docker",
-                "image": DOCKER_IMAGE,
+                "image": docker_image,
                 "cwd": "/workspace",
                 "timeout": timeout,
                 "forward_env": [
