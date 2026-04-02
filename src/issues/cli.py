@@ -168,6 +168,9 @@ def cmd_reviewers(args) -> None:
     manager = ReviewerManager(args.reviewers_dir)
 
     if args.action == "import":
+        if not args.repos:
+            print("Error: --repos required for import action")
+            return
         collector = IssueCollector()
         for repo in args.repos:
             owner, name = repo.split("/")
@@ -176,6 +179,9 @@ def cmd_reviewers(args) -> None:
             print(f"Imported {len(maintainers)} maintainers from {repo}")
 
     elif args.action == "consent":
+        if not args.usernames:
+            print("Error: --usernames required for consent action")
+            return
         for username in args.usernames:
             if manager.set_consent(username, True):
                 print(f"Granted consent for {username}")
