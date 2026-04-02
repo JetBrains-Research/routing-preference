@@ -4,6 +4,7 @@
 
 - [uv](https://docs.astral.sh/uv/) - Fast Python package manager
 - [GitHub CLI](https://cli.github.com/) (`gh`) - For cloning repositories
+- [Docker](https://www.docker.com/) (optional) - For sandboxed execution
 
 Install uv:
 ```bash
@@ -31,18 +32,33 @@ cp .env.example .env
 
 ## Running
 
-Generate solutions from the HuggingFace dataset:
+Generate solutions from a dataset:
 
 ```bash
-# Basic usage
-uv run generate --dataset "not/created/yet" --model openai/gpt-4o-mini
+# Basic usage (local execution)
+uv run generate --dataset data/issues/test.json --model openai/gpt-4o-mini
 
 # Limit number of issues
-uv run generate --dataset "not/created/yet" --model openai/gpt-4o-mini --limit 5
+uv run generate --dataset data/issues/test.json --model openai/gpt-4o-mini --limit 5
+
+# Sandboxed execution (requires Docker)
+uv run generate --dataset data/issues/test.json --model openai/gpt-4o-mini --sandbox docker
 
 # Using make
-make generate DATASET=not/created/yet MODEL=openai/gpt-4o-mini
+make generate DATASET=data/issues/test.json MODEL=openai/gpt-4o-mini
 ```
+
+### Sandbox Mode
+
+By default, agents run locally on the host machine. For untrusted datasets, use `--sandbox docker` to run agents in an isolated container.
+
+```bash
+# Use custom Docker image (optional)
+export ROUTING_SANDBOX_IMAGE=routing-sandbox:latest
+uv run generate --dataset data/issues/untrusted.json --sandbox docker
+```
+
+See [docs/ISOLATION.md](docs/ISOLATION.md) for details.
 
 ## Output
 

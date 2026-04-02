@@ -48,6 +48,13 @@ def main() -> None:
         default=DEFAULT_SOLUTIONS_DIR,
         help=f"Output directory for solutions (default: {DEFAULT_SOLUTIONS_DIR})",
     )
+    parser.add_argument(
+        "--sandbox",
+        type=str,
+        choices=["local", "docker"],
+        default="local",
+        help="Execution environment for agent (default: local)",
+    )
 
     args = parser.parse_args()
 
@@ -59,10 +66,11 @@ def main() -> None:
     dataset = load_issues(args.dataset, split=args.split)
     print(f"Found {len(dataset)} issues")
     print(f"Models: {', '.join(models)}")
+    print(f"Environment: {args.sandbox}")
     print()
 
     # Run pipeline
-    pipeline = Pipeline(solutions_dir=args.output)
+    pipeline = Pipeline(solutions_dir=args.output, environment_type=args.sandbox)
     pipeline.run(dataset=dataset, models=models, limit=args.limit)
 
     print("\nDone!")
