@@ -261,6 +261,9 @@ class IssueCollector:
         if issue.base_commit:
             return issue
 
+        if not issue.created_at:
+            return issue
+
         owner, name = issue.repo.split("/")
         commit = self.get_commit_at_date(owner, name, issue.created_at)
 
