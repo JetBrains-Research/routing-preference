@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 class Pipeline:
     """Orchestrates the solution generation pipeline."""
 
-    def __init__(self, solutions_dir: Path):
-        self.generator = SolutionGenerator()
+    def __init__(self, solutions_dir: Path, environment_type: str = "local"):
+        self.generator = SolutionGenerator(environment_type=environment_type)
         self.storage = SolutionStorage(solutions_dir)
 
     def run(
