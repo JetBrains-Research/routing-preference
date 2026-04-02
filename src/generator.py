@@ -251,8 +251,11 @@ Implement the solution. Only modify the necessary files."""
                     "GH_TOKEN",
                     "OPENAI_API_KEY",
                     "ANTHROPIC_API_KEY",
+                    "GEMINI_API_KEY",
+                    "DEEPSEEK_API_KEY",
+                    "GROQ_API_KEY",
                 ],
-                "run_args": ["-v", f"{workspace}:/workspace"],
+                "run_args": ["--rm", "-v", f"{workspace}:/workspace"],
             }
         else:
             env_config = {

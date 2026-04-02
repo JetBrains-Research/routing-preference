@@ -66,6 +66,7 @@ def main() -> None:
     dataset = load_issues(args.dataset, split=args.split)
     print(f"Found {len(dataset)} issues")
     print(f"Models: {', '.join(models)}")
+    print(f"Environment: {args.sandbox}")
     print()
 
     # Run pipeline
