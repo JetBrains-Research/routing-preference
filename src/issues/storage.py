@@ -110,10 +110,24 @@ class IssueStorage:
         if not file_path.exists():
             return []
 
-        with open(file_path, encoding="utf-8") as f:
-            data = json.load(f)
+        try:
+            with open(file_path, encoding="utf-8") as f:
+                data = json.load(f)
+        except json.JSONDecodeError as e:
+            logger.warning("Failed to parse %s: %s", file_path, e)
+            return []
 
-        return [self._dict_to_issue(item) for item in data]
+        if not isinstance(data, list):
+            logger.warning("Expected list in %s, got %s", file_path, type(data).__name__)
+            return []
+
+        issues = []
+        for item in data:
+            try:
+                issues.append(self._dict_to_issue(item))
+            except (TypeError, KeyError, ValueError) as e:
+                logger.warning("Skipping invalid issue in %s: %s", file_path, e)
+        return issues
 
     def load_all(self) -> Iterator[CollectedIssue]:
         """Load all individual issue files from storage.
