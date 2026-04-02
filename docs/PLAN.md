@@ -2,15 +2,16 @@
 
 ## Current State
 
-The solution generation pipeline is implemented.
+The solution generation pipeline and LLM as a Judge system are implemented.
 
 ## Phase 0: Pipeline Validation
 
 Test the end-to-end flow with minimal data before scaling up.
 
-- [ ] Generate solutions with 2-3 models
-- [ ] Implement basic LLM as a Judge (single characteristic)
-- [ ] Verify the flow works: issue → solution → score
+- [x] Generate solutions with 2-3 models
+- [x] Implement LLM as a Judge (7 characteristics)
+- [x] Verify the flow works: issue → solution → score
+- [x] Add comparative ranking mode for multi-solution comparison
 
 ## Phase 1: Issue Dataset Creation
 
@@ -21,24 +22,31 @@ Create or source a HuggingFace dataset of GitHub issues.
 - [ ] Apply filtering criteria (see [ISSUES.md](ISSUES.md))
 - [ ] Upload dataset to HuggingFace
 
+Currently using test issues from SWE-bench (sympy, requests) for validation.
+
 ## Phase 2: Solution Generation
 
 Generate solutions for all issues using all 7 models.
 
-- [ ] Configure model access (LiteLLM / direct APIs)
+- [x] Configure model access (LiteLLM / direct APIs)
 - [ ] Run pipeline for each model tier
 - [ ] Store solutions with full trajectories
 - [ ] Track costs and timing per solution
+
+Initial solutions generated with gpt-4o-mini and gpt-4o for testing.
 
 ## Phase 3: LLM as a Judge
 
 Implement characteristic scoring for solutions.
 
-- [ ] Define the 7 characteristics to measure
-- [ ] Create judge prompts (one per characteristic)
-- [ ] Implement scoring pipeline
+- [x] Define the 7 characteristics to measure
+- [x] Create judge prompts (one per characteristic)
+- [x] Implement scoring pipeline
+- [x] Implement comparative ranking pipeline
 - [ ] Validate: Manual review of sub-sample to gauge alignment
 - [ ] Score all solutions
+
+See [JUDGE.md](JUDGE.md) for architecture details.
 
 ## Phase 4: Pair Selection
 
