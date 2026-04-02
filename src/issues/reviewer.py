@@ -28,13 +28,22 @@ class ReviewerManager:
     def _load(self) -> None:
         """Load reviewers from storage."""
         if self.reviewers_file.exists():
-            with open(self.reviewers_file, encoding="utf-8") as f:
-                data = json.load(f)
-            self._reviewers = {
-                username: Reviewer(**rev_data)
-                for username, rev_data in data.items()
-            }
-            logger.info("Loaded %d reviewers", len(self._reviewers))
+            try:
+                with open(self.reviewers_file, encoding="utf-8") as f:
+                    data = json.load(f)
+                self._reviewers = {
+                    username: Reviewer(**rev_data)
+                    for username, rev_data in data.items()
+                }
+            except (json.JSONDecodeError, TypeError, ValueError) as e:
+                logger.warning(
+                    "Failed to load %s, using empty reviewer set: %s",
+                    self.reviewers_file,
+                    e,
+                )
+                self._reviewers = {}
+            else:
+                logger.info("Loaded %d reviewers", len(self._reviewers))
 
     def _save(self) -> None:
         """Save reviewers to storage."""
