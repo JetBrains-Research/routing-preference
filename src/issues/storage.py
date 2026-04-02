@@ -144,9 +144,9 @@ class IssueStorage:
         """Count the number of stored issues.
 
         Returns:
-            Number of issue files.
+            Number of issue files (excludes batch file).
         """
-        return len(list(self.base_path.glob("*.json")))
+        return sum(1 for f in self.base_path.glob("*.json") if f.name != "issues.json")
 
     def delete(self, issue_id: str) -> bool:
         """Delete an issue from storage.
