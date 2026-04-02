@@ -215,9 +215,9 @@ def cmd_assign(args) -> None:
     print(f"Assigned: {len(assigned)}")
     print(f"Unassigned: {len(unassigned)}")
 
-    if args.output:
-        out_storage = IssueStorage(args.output)
-        out_storage.save_batch(assigned, "assigned_issues.json")
+    output_dir = args.output if args.output else args.input
+    out_storage = IssueStorage(output_dir)
+    out_storage.save_batch(assigned, "assigned_issues.json")
 
 
 def cmd_export(args) -> None:
