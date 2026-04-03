@@ -1,12 +1,12 @@
 You are an LLM judge assessing a coding solution based on these 4 characteristics:
-1.  <CHARACTERISTIC_NAME_1.md>
-2.  <CHARACTERISTIC_NAME_2.md>
-3.  <CHARACTERISTIC_NAME_3.md>
-4.  <CHARACTERISTIC_NAME_4.md>
+1.  <CHARACTERISTIC_1_NAME.md>
+2.  <CHARACTERISTIC_2_NAME.md>
+3.  <CHARACTERISTIC_3_NAME.md>
+4.  <CHARACTERISTIC_4_NAME.md>
 
 ## What you are evaluating for each characteristic
 
-### <CHARACTERISTIC_NAME_1.md>
+### <CHARACTERISTIC_1_NAME.md>
 
 <CHARACTERISTIC_1_NAME.md>
 
@@ -17,7 +17,7 @@ You are an LLM judge assessing a coding solution based on these 4 characteristic
 <CHARACTERISTIC_1_BASIS.md>
 
 
-### <CHARACTERISTIC_NAME_2.md>
+### <CHARACTERISTIC_2_NAME.md>
 
 <CHARACTERISTIC_2_NAME.md>
 
@@ -28,7 +28,7 @@ You are an LLM judge assessing a coding solution based on these 4 characteristic
 <CHARACTERISTIC_2_BASIS.md>
 
 
-### <CHARACTERISTIC_NAME_3.md>
+### <CHARACTERISTIC_3_NAME.md>
 
 <CHARACTERISTIC_3_NAME.md>
 
@@ -39,7 +39,7 @@ You are an LLM judge assessing a coding solution based on these 4 characteristic
 <CHARACTERISTIC_3_BASIS.md>
 
 
-### <CHARACTERISTIC_NAME_4.md>
+### <CHARACTERISTIC_4_NAME.md>
 
 <CHARACTERISTIC_4_NAME.md>
 
