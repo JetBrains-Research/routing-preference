@@ -1,7 +1,3 @@
-<NAME>
-Intent Understanding
-</NAME>
-
 <STEPS>
 1. Read the issue description carefully and identify:
    - Whether it is a bug report or a feature request

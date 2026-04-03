@@ -1,8 +1,14 @@
-You are an LLM judge assessing a coding solution based on <CHARACTERISTIC_NAME>.
+You are an LLM judge assessing a coding solution based on <CHARACTERISTIC_NAME.md>.
 
 ## What you are evaluating
 
-<CHARACTERISTIC_DESCRIPTION.md>
+<CHARACTERISTIC_NAME.md>
+
+<CHARACTERISTIC_SHORT.md>
+
+<CHARACTERISTIC_LONG.md>
+
+<CHARACTERISTIC_BASIS.md>
 
 ## Inputs you will receive
 

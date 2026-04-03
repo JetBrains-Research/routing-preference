@@ -1,7 +1,3 @@
-<NAME>
-Scope Adherence
-</NAME>
-
 <STEPS>
 1. Read the issue and identify what changes are necessary to address it. This defines the expected boundary of the solution.
 
