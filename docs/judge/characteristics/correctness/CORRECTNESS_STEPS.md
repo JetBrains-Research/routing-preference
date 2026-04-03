@@ -1,7 +1,3 @@
-<NAME>
-Functional Correctness
-</NAME>
-
 <STEPS>
 1. Read the solution and understand the logic changes it introduces, without considering whether they are related to the issue or not.
 

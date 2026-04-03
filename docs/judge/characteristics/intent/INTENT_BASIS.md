@@ -1,20 +1,3 @@
-<NAME>
-Intent Understanding
-</NAME>
-
-<SHORT_DESCRIPTION>
-How well the Agent has grasped what the issue was trying to accomplish or fix.
-</SHORT_DESCRIPTION>
-
-<LONG_DESCRIPTION>
-Issues are either feature requests or bug reports. In both contexts, intent understanding means:
-
-- Bug reports: correct identification of the defect and its root cause as described in the issue
-- Feature requests: correct identification of the desired behavior and all stated constraints
-
-Note: This characteristic is about comprehension only and not about what code was changed or whether the solution works.
-</LONG_DESCRIPTION>
-
 <BASIS>
 Score 5 — Complete and precise understanding
 The Agent correctly identifies the full intent of the issue with no gaps. All key requirements, constraints, and context from the issue are reflected in what the solution sets out to do — regardless of whether the implementation is technically correct.
