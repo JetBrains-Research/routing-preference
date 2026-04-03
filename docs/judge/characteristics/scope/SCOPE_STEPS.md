@@ -7,7 +7,7 @@
    - Is this change directly necessary to address the issue?
    - Or is this change unrelated, unrequested, or beyond what the issue asked for?
 
-4. Assess the overall excess of the solution based on the given criterias.
+4. Assess the overall excess of the solution based on the given criteria.
 
 5. Note: do not consider whether the changes are correct or not. A change that is well-implemented but unrelated to the issue is still out of scope.
 
