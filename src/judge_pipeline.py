@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .models import Issue, Solution
 
-from .judge.judge import Judge
+from .judge.judge import Judge, ScoringMode
 from .judge.storage import JudgmentStorage
 
 logger = logging.getLogger(__name__)
@@ -15,9 +15,19 @@ logger = logging.getLogger(__name__)
 class JudgePipeline:
     """Orchestrates judging multiple solutions."""
 
-    def __init__(self, solutions_dir: Path, judge_model: str = "openai/gpt-4o"):
+    def __init__(
+        self,
+        solutions_dir: Path,
+        judge_model: str = "openai/gpt-4o",
+        mode: str = "batch",
+        prompt_version: str | None = None,
+    ):
         self.solutions_dir = solutions_dir
-        self.judge = Judge(model=judge_model)
+        self.judge = Judge(
+            model=judge_model,
+            mode=ScoringMode(mode),
+            prompt_version=prompt_version,
+        )
         self.storage = JudgmentStorage(solutions_dir)
 
     def run(self, skip_existing: bool = True) -> None:
