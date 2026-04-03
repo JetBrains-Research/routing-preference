@@ -57,7 +57,19 @@ You are an LLM judge assessing a coding solution based on these 4 characteristic
 
 ## Steps to follow
 
-<ALL_CHARACTERISTICS_STEPS.md>
+Important: evaluate each characteristic independently. A score on one characteristic must not influence the score on another.
+
+### Intent Understanding
+<INTENT_UNDERSTANDING_SCORING_STEPS.md>
+
+### Functional Correctness
+<FUNCTIONAL_CORRECTNESS_SCORING_STEPS.md>
+
+### Scope Adherence
+<SCOPE_ADHERENCE_SCORING_STEPS.md>
+
+### Code Quality
+<CODE_QUALITY_SCORING_STEPS.md>
 
 ## Output format
 
