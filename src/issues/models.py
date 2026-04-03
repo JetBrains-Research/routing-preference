@@ -7,6 +7,7 @@ from enum import Enum
 
 class IssueType(str, Enum):
     """Type of GitHub issue."""
+
     BUG = "bug"
     FEATURE = "feature"
     OTHER = "other"
@@ -14,6 +15,7 @@ class IssueType(str, Enum):
 
 class Complexity(str, Enum):
     """Estimated complexity of the issue."""
+
     SIMPLE = "simple"
     MEDIUM = "medium"
     COMPLEX = "complex"
@@ -22,6 +24,7 @@ class Complexity(str, Enum):
 
 class TypeSource(str, Enum):
     """How the issue type was determined."""
+
     LABEL = "label"
     LLM = "llm"
     UNKNOWN = "unknown"
@@ -32,17 +35,17 @@ class CollectedIssue:
     """A GitHub issue collected for the dataset."""
 
     # Core fields (from GitHub)
-    id: str                         # e.g., "flask__flask-5234"
-    repo: str                       # e.g., "pallets/flask"
+    id: str  # e.g., "flask__flask-5234"
+    repo: str  # e.g., "pallets/flask"
     number: int
     title: str
     body: str
     labels: list[str] = field(default_factory=list)
-    state: str = "open"             # open/closed
+    state: str = "open"  # open/closed
     created_at: str = ""
     updated_at: str = ""
     author: str = ""
-    author_association: str = ""    # MEMBER, CONTRIBUTOR, NONE, etc.
+    author_association: str = ""  # MEMBER, CONTRIBUTOR, NONE, etc.
     comments_count: int = 0
     reactions_count: int = 0
     html_url: str = ""
@@ -59,7 +62,7 @@ class CollectedIssue:
 
     # Reviewer assignment
     assigned_reviewer: str | None = None
-    reviewer_type: str | None = None   # maintainer/author
+    reviewer_type: str | None = None  # maintainer/author
 
     # Metadata
     collected_at: str = ""

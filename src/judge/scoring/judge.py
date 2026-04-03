@@ -3,14 +3,13 @@
 from datetime import datetime
 from enum import Enum
 
-from ..models import Issue, Solution
-from .models import Judgment, Score
-from .scoring import BatchScorer, PromptScorer
+from ...models import Issue, Solution
+from ..models import Judgment, Score
+from .batch_scorer import BatchScorer
+from .prompt_scorer import PromptScorer
 
 
 class ScoringMode(Enum):
-    """Scoring mode for the judge."""
-
     SINGLE = "single"  # One LLM call per characteristic
     BATCH = "batch"  # One LLM call for all characteristics
 
@@ -46,16 +45,7 @@ class Judge:
         solution: Solution,
         solution_folder: str,
     ) -> Judgment:
-        """Judge a solution on all characteristics.
-
-        Args:
-            issue: The original issue.
-            solution: The generated solution.
-            solution_folder: The folder name where the solution is stored.
-
-        Returns:
-            Complete Judgment with all scores.
-        """
+        """Judge a solution on all characteristics."""
         if self.mode == ScoringMode.BATCH:
             scores = self.batch_scorer.score_all(issue, solution)
         else:
@@ -76,7 +66,6 @@ class Judge:
         )
 
     def _score_individually(self, issue: Issue, solution: Solution) -> list[Score]:
-        """Score each characteristic with separate LLM calls."""
         scores = []
         for char_id in BatchScorer.CHARACTERISTIC_ORDER:
             score = self.scorer.score(char_id, issue, solution)

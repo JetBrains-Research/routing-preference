@@ -28,7 +28,9 @@ DEFAULT_DOCKER_IMAGE = "python:3.11-slim"
 
 
 class SolutionGenerator:
-    def __init__(self, environment_type: str = "local", prompt_version: str | None = None):
+    def __init__(
+        self, environment_type: str = "local", prompt_version: str | None = None
+    ):
         """Initialize the solution generator.
 
         Args:
@@ -184,8 +186,7 @@ class SolutionGenerator:
             ) from e
         except subprocess.CalledProcessError as e:
             raise RuntimeError(
-                f"git checkout failed for {commit}.\n"
-                f"stderr: {e.stderr or ''}"
+                f"git checkout failed for {commit}.\nstderr: {e.stderr or ''}"
             ) from e
 
     def _make_workspace_name(self, issue: Issue) -> str:
@@ -208,7 +209,9 @@ class SolutionGenerator:
 
     def _build_prompt(self, issue: Issue) -> str:
         template = self._load_prompt_template()
-        return template.replace("<ISSUE_TITLE>", issue.title).replace("<ISSUE_BODY>", issue.body)
+        return template.replace("<ISSUE_TITLE>", issue.title).replace(
+            "<ISSUE_BODY>", issue.body
+        )
 
     def _run_agent(
         self,
@@ -249,7 +252,8 @@ class SolutionGenerator:
                 "run_args": [
                     "--rm",
                     f"--user={os.getuid()}:{os.getgid()}",
-                    "-v", f"{workspace}:/workspace",
+                    "-v",
+                    f"{workspace}:/workspace",
                 ],
             }
         else:
@@ -275,7 +279,9 @@ class SolutionGenerator:
 
         # Initialize components
         model = get_model(config=config.get("model", {}))
-        env = get_environment(config.get("environment", {}), default_type=self.environment_type)
+        env = get_environment(
+            config.get("environment", {}), default_type=self.environment_type
+        )
         agent = get_agent(model, env, config.get("agent", {}), default_type="default")
 
         agent.run(prompt)

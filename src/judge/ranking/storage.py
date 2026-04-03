@@ -23,7 +23,9 @@ class RankingStorage:
     def save(self, judgment: ComparativeJudgment) -> Path:
         """Save a comparative judgment."""
         path = self.rankings_dir / f"{judgment.issue_id}.json"
-        self._atomic_write(path, json.dumps(asdict(judgment), indent=2, ensure_ascii=False))
+        self._atomic_write(
+            path, json.dumps(asdict(judgment), indent=2, ensure_ascii=False)
+        )
         return path
 
     def load(self, issue_id: str) -> ComparativeJudgment | None:

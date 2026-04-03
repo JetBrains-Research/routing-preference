@@ -1,19 +1,6 @@
-"""Data models for the LLM judge system."""
+"""Data models for the Judge."""
 
 from dataclasses import dataclass
-
-
-@dataclass
-class Characteristic:
-    """Definition of a characteristic to measure.
-
-    Each characteristic has its own prompt template for the LLM judge.
-    """
-
-    id: str
-    name: str
-    description: str
-    prompt_template: str
 
 
 @dataclass
@@ -37,4 +24,4 @@ class Judgment:
     overall_score: float
     created_at: str
     prompt_version: str | None = None
-    score_scale: tuple[int, int] | None = None  # (min, max) e.g. (1, 5)
+    score_scale: tuple[int, int] | None = None

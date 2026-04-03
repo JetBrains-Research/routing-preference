@@ -5,7 +5,7 @@ import re
 import litellm
 
 from ...models import Issue, Solution
-from ..legacy import Characteristic
+from ..loader import LoadedCharacteristic
 from .models import Ranking
 
 
@@ -17,31 +17,20 @@ class RankingScorer:
 
     def rank(
         self,
-        characteristic: Characteristic,
+        characteristic: LoadedCharacteristic,
         issue: Issue,
         solutions: list[Solution],
     ) -> Ranking:
-        """Rank solutions on a single characteristic.
-
-        Args:
-            characteristic: The characteristic to rank on.
-            issue: The original issue.
-            solutions: List of solutions to compare.
-
-        Returns:
-            Ranking with model -> rank mapping.
-        """
         prompt = self._build_prompt(characteristic, issue, solutions)
         response = self._call_llm(prompt)
         return self._parse_response(response, characteristic.id, solutions)
 
     def _build_prompt(
         self,
-        characteristic: Characteristic,
+        characteristic: LoadedCharacteristic,
         issue: Issue,
         solutions: list[Solution],
     ) -> str:
-        """Build prompt presenting all solutions for comparison."""
         solutions_text = ""
         for i, sol in enumerate(solutions, 1):
             solutions_text += f"""
@@ -63,9 +52,9 @@ class RankingScorer:
 {solutions_text}
 
 ## Task
-Rank ALL solutions on **{characteristic.name}**: {characteristic.description}
+Rank ALL solutions on **{characteristic.name}**: {characteristic.short}
 
-Consider: {self._get_criteria(characteristic.id)}
+{characteristic.long}
 
 ## Response Format
 Rank from best (1) to worst ({len(solutions)}). Each solution must have a unique rank.
@@ -78,21 +67,7 @@ Solution 2: <rank>
 Reasoning: <your explanation for the ranking>
 """
 
-    def _get_criteria(self, characteristic_id: str) -> str:
-        """Get evaluation criteria for a characteristic."""
-        criteria = {
-            "correctness": "Does the solution correctly solve the issue? Are there bugs?",
-            "completeness": "Does it address all aspects? Are edge cases handled?",
-            "readability": "Is the code easy to read? Are names clear?",
-            "maintainability": "Is it well-structured? Easy to modify?",
-            "efficiency": "Is it performant? No unnecessary operations?",
-            "safety": "Does it handle errors? Avoid vulnerabilities?",
-            "minimality": "Only necessary changes? No over-engineering?",
-        }
-        return criteria.get(characteristic_id, "")
-
     def _call_llm(self, prompt: str) -> str:
-        """Call the LLM via LiteLLM."""
         response = litellm.completion(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
@@ -106,11 +81,9 @@ Reasoning: <your explanation for the ranking>
         characteristic_id: str,
         solutions: list[Solution],
     ) -> Ranking:
-        """Parse LLM response into a Ranking."""
         ranks: dict[str, int] = {}
         num_solutions = len(solutions)
 
-        # Parse "Solution N: <rank>" patterns
         for i, sol in enumerate(solutions, 1):
             pattern = rf"Solution\s*{i}\s*:\s*(\d+)"
             match = re.search(pattern, response, re.IGNORECASE)
@@ -121,14 +94,12 @@ Reasoning: <your explanation for the ranking>
                     f"Could not parse rank for Solution {i} from response: {response[:200]}"
                 )
 
-        # Validate ranks are in valid range
         rank_values = list(ranks.values())
         if not all(1 <= r <= num_solutions for r in rank_values):
             raise ValueError(
                 f"Ranks must be between 1 and {num_solutions}, got {rank_values}"
             )
 
-        # Validate ranks are unique (no ties)
         if len(set(rank_values)) != num_solutions:
             raise ValueError(
                 f"Ranks must be unique (1..{num_solutions}), got {rank_values}"

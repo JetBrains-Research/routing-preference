@@ -26,7 +26,9 @@ class PromptLoader:
         characteristic_loader: CharacteristicLoader | None = None,
     ):
         self.judge_dir = judge_dir or self.DEFAULT_PATH
-        self.char_loader = characteristic_loader or CharacteristicLoader(judge_dir=self.judge_dir)
+        self.char_loader = characteristic_loader or CharacteristicLoader(
+            judge_dir=self.judge_dir
+        )
         self._config: dict | None = None
 
     def _load_config(self) -> dict:

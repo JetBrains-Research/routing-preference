@@ -76,8 +76,12 @@ class CharacteristicLoader:
             short_description=self._load_file(char_dir / f"{prefix}_SHORT.md"),
             long_description=self._load_file(char_dir / f"{prefix}_LONG.md"),
             basis=self._load_file(char_dir / f"{prefix}_BASIS.md"),
-            scoring_steps_v1=self._load_file(char_dir / f"{prefix}_SCORING_STEPS_V1.md"),
-            scoring_steps_v2=self._load_file(char_dir / f"{prefix}_SCORING_STEPS_V2.md"),
+            scoring_steps_v1=self._load_file(
+                char_dir / f"{prefix}_SCORING_STEPS_V1.md"
+            ),
+            scoring_steps_v2=self._load_file(
+                char_dir / f"{prefix}_SCORING_STEPS_V2.md"
+            ),
         )
 
         self._cache[characteristic_id] = char

@@ -67,12 +67,14 @@ def cmd_collect(args) -> None:
             continue
 
         # Collect issues
-        collected = list(collector.collect_issues(
-            owner,
-            name,
-            state=args.state,
-            max_issues=args.max_per_repo,
-        ))
+        collected = list(
+            collector.collect_issues(
+                owner,
+                name,
+                state=args.state,
+                max_issues=args.max_per_repo,
+            )
+        )
         logger.info("Collected: %d issues", len(collected))
 
         # Filter issues
@@ -149,8 +151,12 @@ def cmd_classify(args) -> None:
     type_counts = {}
     complexity_counts = {}
     for issue in classified:
-        type_counts[issue.issue_type.value] = type_counts.get(issue.issue_type.value, 0) + 1
-        complexity_counts[issue.complexity.value] = complexity_counts.get(issue.complexity.value, 0) + 1
+        type_counts[issue.issue_type.value] = (
+            type_counts.get(issue.issue_type.value, 0) + 1
+        )
+        complexity_counts[issue.complexity.value] = (
+            complexity_counts.get(issue.complexity.value, 0) + 1
+        )
 
     logger.info("Issue Types:")
     for t, count in sorted(type_counts.items()):
@@ -227,7 +233,11 @@ def cmd_export(args) -> None:
     storage = IssueStorage(args.input)
     hf_storage = HuggingFaceStorage(args.dataset_name)
 
-    issues = storage.load_batch(args.batch_file) if args.batch_file else list(storage.load_all())
+    issues = (
+        storage.load_batch(args.batch_file)
+        if args.batch_file
+        else list(storage.load_all())
+    )
     logger.info("Loaded %d issues", len(issues))
 
     path = hf_storage.export(
@@ -246,7 +256,8 @@ def main() -> None:
         description="Issue collection pipeline for routing-preference",
     )
     parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Enable verbose logging",
     )
@@ -254,14 +265,18 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Collect command
-    collect_parser = subparsers.add_parser("collect", help="Collect issues from repositories")
+    collect_parser = subparsers.add_parser(
+        "collect", help="Collect issues from repositories"
+    )
     collect_parser.add_argument(
-        "--repos", "-r",
+        "--repos",
+        "-r",
         nargs="+",
         help="Repositories to collect from (owner/name format)",
     )
     collect_parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=Path,
         default=DEFAULT_ISSUES_DIR,
         help="Output directory",
@@ -315,13 +330,15 @@ def main() -> None:
     # Filter command
     filter_parser = subparsers.add_parser("filter", help="Filter existing issues")
     filter_parser.add_argument(
-        "--input", "-i",
+        "--input",
+        "-i",
         type=Path,
         default=DEFAULT_ISSUES_DIR,
         help="Input directory",
     )
     filter_parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=Path,
         help="Output directory",
     )
@@ -346,13 +363,15 @@ def main() -> None:
     # Classify command
     classify_parser = subparsers.add_parser("classify", help="Classify issues")
     classify_parser.add_argument(
-        "--input", "-i",
+        "--input",
+        "-i",
         type=Path,
         default=DEFAULT_ISSUES_DIR,
         help="Input directory",
     )
     classify_parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=Path,
         help="Output directory",
     )
@@ -376,12 +395,14 @@ def main() -> None:
         help="Action to perform",
     )
     reviewers_parser.add_argument(
-        "--repos", "-r",
+        "--repos",
+        "-r",
         nargs="+",
         help="Repositories for import action",
     )
     reviewers_parser.add_argument(
-        "--usernames", "-u",
+        "--usernames",
+        "-u",
         nargs="+",
         help="Usernames for consent action",
     )
@@ -402,13 +423,15 @@ def main() -> None:
     # Assign command
     assign_parser = subparsers.add_parser("assign", help="Assign reviewers to issues")
     assign_parser.add_argument(
-        "--input", "-i",
+        "--input",
+        "-i",
         type=Path,
         default=DEFAULT_ISSUES_DIR,
         help="Input directory",
     )
     assign_parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=Path,
         help="Output directory",
     )
@@ -423,7 +446,8 @@ def main() -> None:
     # Export command
     export_parser = subparsers.add_parser("export", help="Export to HuggingFace")
     export_parser.add_argument(
-        "--input", "-i",
+        "--input",
+        "-i",
         type=Path,
         default=DEFAULT_ISSUES_DIR,
         help="Input directory",

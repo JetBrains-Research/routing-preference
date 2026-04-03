@@ -100,7 +100,9 @@ class BatchScorer:
             reasoning = score_data.get("reasoning", "")
 
             if not isinstance(score_value, int) or not 1 <= score_value <= 5:
-                raise ValueError(f"Score for {char_name} must be 1-5, got: {score_value}")
+                raise ValueError(
+                    f"Score for {char_name} must be 1-5, got: {score_value}"
+                )
 
             scores.append(
                 Score(

@@ -11,25 +11,59 @@ logger = logging.getLogger(__name__)
 
 # Label patterns for issue type classification
 BUG_LABELS = {
-    "bug", "defect", "error", "crash", "regression", "fix", "bugfix",
-    "type: bug", "kind: bug", "type/bug", "bug-fix", "confirmed bug",
+    "bug",
+    "defect",
+    "error",
+    "crash",
+    "regression",
+    "fix",
+    "bugfix",
+    "type: bug",
+    "kind: bug",
+    "type/bug",
+    "bug-fix",
+    "confirmed bug",
 }
 
 FEATURE_LABELS = {
-    "feature", "enhancement", "feature-request", "improvement", "new feature",
-    "type: feature", "kind: feature", "type/feature", "rfe", "idea",
-    "type: enhancement", "kind: enhancement",
+    "feature",
+    "enhancement",
+    "feature-request",
+    "improvement",
+    "new feature",
+    "type: feature",
+    "kind: feature",
+    "type/feature",
+    "rfe",
+    "idea",
+    "type: enhancement",
+    "kind: enhancement",
 }
 
 # Keywords for complexity estimation
 SIMPLE_KEYWORDS = {
-    "typo", "spelling", "docstring", "comment", "rename", "type hint",
-    "typing", "annotation", "deprecation warning", "import",
+    "typo",
+    "spelling",
+    "docstring",
+    "comment",
+    "rename",
+    "type hint",
+    "typing",
+    "annotation",
+    "deprecation warning",
+    "import",
 }
 
 COMPLEX_KEYWORDS = {
-    "refactor", "redesign", "rewrite", "architecture", "breaking change",
-    "migration", "overhaul", "rearchitect", "major",
+    "refactor",
+    "redesign",
+    "rewrite",
+    "architecture",
+    "breaking change",
+    "migration",
+    "overhaul",
+    "rearchitect",
+    "major",
 }
 
 
