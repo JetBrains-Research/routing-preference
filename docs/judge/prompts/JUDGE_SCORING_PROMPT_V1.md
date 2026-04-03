@@ -17,7 +17,7 @@ You are an LLM judge assessing a coding solution based on <CHARACTERISTIC_NAME.m
 
 ## Steps to follow
 
-<CHARACTERISTIC_STEPS.md>
+<CHARACTERISTIC_SCORING_STEPS.md>
 
 ## Output format
 
