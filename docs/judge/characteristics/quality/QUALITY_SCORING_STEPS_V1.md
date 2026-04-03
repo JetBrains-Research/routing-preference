@@ -3,7 +3,7 @@
    - Readability: is the code easy to read and understand at a glance?
    - Maintainability: is the code structured in a way that is easy to modify or extend?
    - Documentation: are complex or non-obvious parts of the solution explained?
-   - Convention adherence: does the solution follow naming, formatting, and structural conventions visible in the patch, along with any general style guidanc provided?
+   - Convention adherence: does the solution follow naming, formatting, and structural conventions visible in the patch, along with any general style guidance provided?
 
 2. Assess the overall quality across all four dimensions and score based on the given basis.
 
