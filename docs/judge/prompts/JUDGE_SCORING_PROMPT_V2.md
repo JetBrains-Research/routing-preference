@@ -14,10 +14,11 @@ You are an LLM judge assessing a coding solution based on <CHARACTERISTIC_NAME.m
 
 1. The GitHub issue description
 2. A patch.diff representing the proposed solution to that issue
+3. The original source files from the repository that the patch applies to
 
 ## Steps to follow
 
-<CHARACTERISTIC_SCORING_STEPS_V1.md>
+<CHARACTERISTIC_SCORING_STEPS_V2.md>
 
 ## Output format
 
