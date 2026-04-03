@@ -97,6 +97,11 @@ class PromptLoader:
         chars = [self.char_loader.load(cid) for cid in characteristic_ids]
         return self._hydrate_batch(template, chars)
 
+    def load_context(self, version: str | None = None) -> str:
+        """Load context template."""
+        template_path = self._get_prompt_path("context", version)
+        return template_path.read_text(encoding="utf-8")
+
     def _hydrate_single(self, template: str, char: LoadedCharacteristic) -> str:
         """Replace single-characteristic placeholders."""
         result = template

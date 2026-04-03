@@ -42,13 +42,9 @@ def cmd_judge(args) -> None:
 def _run_scoring(args) -> None:
     """Run absolute scoring for solutions."""
     from .models import Issue, Solution
-    from .judge import Judge, ScoringMode, JudgmentStorage
+    from .judge import Judge, JudgmentStorage
 
-    judge = Judge(
-        model=args.model,
-        mode=ScoringMode(args.mode),
-        prompt_version=args.prompt_version,
-    )
+    judge = Judge(model=args.model, version=args.version)
     storage = JudgmentStorage(args.solutions_dir)
 
     # Get folders to process
@@ -64,7 +60,7 @@ def _run_scoring(args) -> None:
         folders = storage.list_unjudged()
 
     logger.info("Judging %d solutions in: %s", len(folders), args.solutions_dir)
-    logger.info("Model: %s, Mode: %s", args.model, args.mode)
+    logger.info("Model: %s, Version: %s", args.model, args.version)
 
     for folder_name in folders:
         folder = args.solutions_dir / folder_name
@@ -247,16 +243,10 @@ def main() -> None:
         help="Re-judge solutions that already have judgments",
     )
     judge_parser.add_argument(
-        "--mode",
-        choices=["single", "batch"],
-        default="batch",
-        help="Scoring mode (default: batch)",
-    )
-    judge_parser.add_argument(
-        "--prompt-version",
-        type=str,
-        default=None,
-        help="Prompt template version",
+        "--version",
+        choices=["V1", "V2.0", "V2.1"],
+        default="V1",
+        help="Scoring version: V1 (issue+diff) or V2.x (issue+diff+sources)",
     )
     judge_parser.add_argument(
         "--verbose",
