@@ -36,3 +36,5 @@ class Judgment:
     scores: list[Score]
     overall_score: float
     created_at: str
+    prompt_version: str | None = None
+    score_scale: tuple[int, int] | None = None  # (min, max) e.g. (1, 5)

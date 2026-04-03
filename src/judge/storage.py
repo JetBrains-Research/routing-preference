@@ -33,6 +33,9 @@ class JudgmentStorage:
             data = json.load(f)
         # Convert scores dicts back to Score objects
         data["scores"] = [Score(**s) for s in data["scores"]]
+        # Convert score_scale list back to tuple
+        if data.get("score_scale"):
+            data["score_scale"] = tuple(data["score_scale"])
         return Judgment(**data)
 
     def has_judgment(self, solution_folder: str) -> bool:
