@@ -1,3 +1,3 @@
 <SHORT_DESCRIPTION>
-Readability, maintainability, documentation, and adherence to conventions.
+How well-written the solution is in terms of readability, maintainability, documentation, and adherence to coding conventions.
 </SHORT_DESCRIPTION>
