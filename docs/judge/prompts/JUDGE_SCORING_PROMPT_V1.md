@@ -23,9 +23,7 @@ You are an LLM judge assessing a coding solution based on <CHARACTERISTIC_NAME.m
 
 Respond with valid JSON only. Do not include any text outside the JSON block.
 
-<OUTPUT>
 {
     "score": <integer_between_1_and_5>,
     "reasoning": "<your_reasoning_in_one_to_three_sentences>"
 }
-</OUTPUT>
