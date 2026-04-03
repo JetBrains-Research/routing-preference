@@ -3,20 +3,19 @@
 from .models import Judgment, Score
 from .storage import JudgmentStorage
 from .loader import CharacteristicLoader, LoadedCharacteristic, PromptLoader
-from .scoring import BatchScorer, Judge, PromptScorer, ScoringMode
+from .scoring import Judge, V1Scorer, V2Scorer
 from .ranking import ComparativeJudgment, Ranking, RankingJudge, RankingStorage
 
 __all__ = [
     "Judge",
     "JudgmentStorage",
-    "ScoringMode",
     "Judgment",
     "Score",
     "CharacteristicLoader",
     "LoadedCharacteristic",
     "PromptLoader",
-    "BatchScorer",
-    "PromptScorer",
+    "V1Scorer",
+    "V2Scorer",
     "ComparativeJudgment",
     "Ranking",
     "RankingJudge",

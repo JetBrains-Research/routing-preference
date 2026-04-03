@@ -10,6 +10,10 @@
         },
         "ranking": {
             "V1": "./prompts/ranking/V1.md"
+        },
+        "context": {
+            "V1": "./context/V1.md",
+            "V2": "./context/V2.md"
         }
     },
     "characteristics": {
@@ -21,6 +25,7 @@
     "defaults": {
         "single": "V2.1",
         "batch": "V1",
-        "ranking": "V1"
+        "ranking": "V1",
+        "context": "V1"
     }
 }

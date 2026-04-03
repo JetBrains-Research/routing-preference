@@ -1,55 +1,46 @@
 """Judge that scores a solution on all characteristics."""
 
 from datetime import datetime
-from enum import Enum
 
 from ...models import Issue, Solution
-from ..models import Judgment, Score
-from .batch_scorer import BatchScorer
-from .prompt_scorer import PromptScorer
-
-
-class ScoringMode(Enum):
-    SINGLE = "single"  # One LLM call per characteristic
-    BATCH = "batch"  # One LLM call for all characteristics
+from ..models import Judgment
+from .v1 import Scorer as V1Scorer
+from .v2 import Scorer as V2Scorer
 
 
 class Judge:
     """Scores a solution on all characteristics."""
 
-    def __init__(
-        self,
-        model: str = "openai/gpt-4o",
-        mode: ScoringMode = ScoringMode.BATCH,
-        prompt_version: str | None = None,
-    ):
+    def __init__(self, model: str = "openai/gpt-4o", version: str = "V1"):
         self.model = model
-        self.mode = mode
+        self.version = version
 
-        if mode == ScoringMode.SINGLE:
-            self.prompt_version = prompt_version or "V2.1"
-            self.scorer = PromptScorer(
-                model=model,
-                prompt_version=self.prompt_version,
-            )
+        if version == "V1":
+            self.scorer = V1Scorer(model=model)
         else:
-            self.prompt_version = prompt_version or "V1"
-            self.batch_scorer = BatchScorer(
-                model=model,
-                prompt_version=self.prompt_version,
-            )
+            self.scorer = V2Scorer(model=model, prompt_version=version)
 
     def judge(
         self,
         issue: Issue,
         solution: Solution,
         solution_folder: str,
+        source_files: dict[str, str] | None = None,
     ) -> Judgment:
-        """Judge a solution on all characteristics."""
-        if self.mode == ScoringMode.BATCH:
-            scores = self.batch_scorer.score_all(issue, solution)
+        """Judge a solution on all characteristics.
+
+        Args:
+            issue: The issue being solved.
+            solution: The proposed solution.
+            solution_folder: Folder name where solution is stored.
+            source_files: Required for V2 - dict of filepath -> content.
+        """
+        if self.version == "V1":
+            scores = self.scorer.score_all(issue, solution)
         else:
-            scores = self._score_individually(issue, solution)
+            if source_files is None:
+                raise ValueError("V2 scoring requires source_files")
+            scores = self.scorer.score_all(issue, solution, source_files)
 
         overall = sum(s.value for s in scores) / len(scores) if scores else 0
 
@@ -61,13 +52,6 @@ class Judge:
             scores=scores,
             overall_score=round(overall, 2),
             created_at=datetime.now().isoformat(),
-            prompt_version=self.prompt_version,
+            prompt_version=self.version,
             score_scale=(1, 5),
         )
-
-    def _score_individually(self, issue: Issue, solution: Solution) -> list[Score]:
-        scores = []
-        for char_id in BatchScorer.CHARACTERISTIC_ORDER:
-            score = self.scorer.score(char_id, issue, solution)
-            scores.append(score)
-        return scores
