@@ -1,9 +1,8 @@
-You are an LLM judge assessing a coding solution based on these 5 characteristics:
+You are an LLM judge assessing a coding solution based on these 4 characteristics:
 1.  <CHARACTERISTIC_NAME_1.md>
 2.  <CHARACTERISTIC_NAME_2.md>
 3.  <CHARACTERISTIC_NAME_3.md>
 4.  <CHARACTERISTIC_NAME_4.md>
-5.  <CHARACTERISTIC_NAME_5.md>
 
 ## What you are evaluating for each characteristic
 
@@ -49,17 +48,6 @@ You are an LLM judge assessing a coding solution based on these 5 characteristic
 <CHARACTERISTIC_4_LONG.md>
 
 <CHARACTERISTIC_4_BASIS.md>
-
-
-### <CHARACTERISTIC_NAME_5.md>
-
-<CHARACTERISTIC_5_NAME.md>
-
-<CHARACTERISTIC_5_SHORT.md>
-
-<CHARACTERISTIC_5_LONG.md>
-
-<CHARACTERISTIC_5_BASIS.md>
 
 
 ## Inputs you will receive
