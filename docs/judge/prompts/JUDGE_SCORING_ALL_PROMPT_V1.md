@@ -82,6 +82,6 @@ Respond with valid JSON only. Do not include any text outside the JSON block.
             "score": <integer_between_1_and_5>,
             "reasoning": "<brief_reasoning_in_one_to_three_sentences>"
         }
-    },
+    }
 }
 </OUTPUT>
