@@ -93,7 +93,12 @@ def run_ranking(args) -> None:
 
 def run_scoring(args) -> None:
     """Run absolute scoring for solutions."""
-    pipeline = JudgePipeline(args.solutions_dir, args.judge_model)
+    pipeline = JudgePipeline(
+        args.solutions_dir,
+        args.judge_model,
+        mode=args.mode,
+        prompt_version=args.prompt_version,
+    )
 
     if args.solution:
         print(f"Judging solution: {args.solution}")
@@ -101,6 +106,7 @@ def run_scoring(args) -> None:
     else:
         print(f"Judging solutions in: {args.solutions_dir}")
         print(f"Judge model: {args.judge_model}")
+        print(f"Mode: {args.mode}")
         print()
         pipeline.run(skip_existing=not args.no_skip_existing)
 
@@ -147,6 +153,18 @@ def main() -> None:
         "--no-skip-existing",
         action="store_true",
         help="Re-judge solutions that already have judgments",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["single", "batch"],
+        default="batch",
+        help="Scoring mode: 'single' (one call per characteristic) or 'batch' (all at once)",
+    )
+    parser.add_argument(
+        "--prompt-version",
+        type=str,
+        default=None,
+        help="Prompt template version (e.g., V2.1 for single, V1 for batch)",
     )
     parser.add_argument(
         "--verbose", "-v",
