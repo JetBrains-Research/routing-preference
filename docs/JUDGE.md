@@ -68,12 +68,35 @@ The judge sees only the diff, not the full agent trajectory.
 
 ## Prompt Templates
 
-Prompts are loaded from `docs/judge/prompts/`:
+Prompts are organized in `docs/judge/prompts/` by type:
 
-| File | Mode | Description |
-|------|------|-------------|
-| `JUDGE_SCORING_PROMPT_V*.md` | Single | Template for scoring one characteristic |
-| `JUDGE_SCORING_ALL_PROMPT_V*.md` | Batch | Template for scoring all characteristics at once |
+```
+docs/judge/
+  prompts.json               # Configuration and version mappings
+  prompts/
+    single/                  # One characteristic per call
+      V1.md
+      V2.0.md
+      V2.1.md
+    batch/                   # All characteristics in one call
+      V1.md
+    ranking/                 # Comparative ranking
+      V1.md
+  characteristics/
+    intent/
+    correctness/
+    scope/
+    quality/
+```
+
+Configuration in `prompts.json`:
+```json
+{
+  "prompts": { "single": { "V1": "./prompts/single/V1.md", ... } },
+  "characteristics": { "intent": "./characteristics/intent/", ... },
+  "defaults": { "single": "V2.1", "batch": "V1", "ranking": "V1" }
+}
+```
 
 Templates use placeholders like `<CHARACTERISTIC_NAME.md>` that are replaced with content from the characteristic files.
 

@@ -221,6 +221,6 @@ Respond with ONLY one word: BUG, FEATURE, or OTHER."""
             try:
                 classified.append(self.classify(issue, use_llm_fallback))
             except Exception as e:
-                logger.warning("Failed to classify %s: %s", issue.id, e)
+                logger.warning("Failed to classify %s: %s", issue.issue_id, e)
                 classified.append(issue)
         return classified

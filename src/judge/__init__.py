@@ -1,36 +1,38 @@
 """LLM as a Judge"""
 
-# New prompt-based system
-from .batch_scorer import BatchScorer
+# Main
 from .judge import Judge, ScoringMode
-from .loader import CharacteristicLoader, LoadedCharacteristic, PromptLoader
 from .models import Characteristic, Judgment, Score
-from .prompt_scorer import PromptScorer
 from .storage import JudgmentStorage
 
-# Ranking (unchanged)
-from .ranking_judge import RankingJudge
-from .ranking_models import ComparativeJudgment, Ranking
-from .ranking_storage import RankingStorage
+# Loader
+from .loader import CharacteristicLoader, LoadedCharacteristic, PromptLoader
 
-# Legacy (deprecated, kept for ranking mode)
-from .characteristics import CHARACTERISTICS, get_characteristic
-from .scorer import CharacteristicScorer
+# Scoring
+from .scoring import BatchScorer, PromptScorer
+
+# Ranking
+from .ranking import ComparativeJudgment, Ranking, RankingJudge, RankingStorage
+
+# Legacy (deprecated)
+from .legacy import CHARACTERISTICS, CharacteristicScorer, get_characteristic
 
 __all__ = [
-    # New
-    "BatchScorer",
-    "CharacteristicLoader",
+    # Main
     "Judge",
-    "LoadedCharacteristic",
-    "PromptLoader",
-    "PromptScorer",
+    "JudgmentStorage",
     "ScoringMode",
     # Models
     "Characteristic",
     "Judgment",
-    "JudgmentStorage",
     "Score",
+    # Loader
+    "CharacteristicLoader",
+    "LoadedCharacteristic",
+    "PromptLoader",
+    # Scoring
+    "BatchScorer",
+    "PromptScorer",
     # Ranking
     "ComparativeJudgment",
     "Ranking",

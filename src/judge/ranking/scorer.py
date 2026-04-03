@@ -4,9 +4,9 @@ import re
 
 import litellm
 
-from ..models import Issue, Solution
-from .models import Characteristic
-from .ranking_models import Ranking
+from ...models import Issue, Solution
+from ..legacy import Characteristic
+from .models import Ranking
 
 
 class RankingScorer:

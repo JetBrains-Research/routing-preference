@@ -272,7 +272,7 @@ class IssueCollector:
             logger.debug(
                 "Found base commit %s for issue %s",
                 commit[:8],
-                issue.id,
+                issue.issue_id,
             )
 
         return issue

@@ -13,9 +13,8 @@ dependencies = [
 ]
 
 [project.scripts]
-generate = "src.cli:main"
+routing = "src.cli:main"
 collect-issues = "src.issues.cli:main"
-judge = "src.judge_cli:main"
 
 [dependency-groups]
 dev = []
