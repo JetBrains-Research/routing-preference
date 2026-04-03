@@ -1,6 +1,5 @@
 """Routing Preference."""
 
-# Lazy imports to avoid loading heavy dependencies (mini-swe-agent) when not needed
 def __getattr__(name: str):
     if name == "IssueDataset":
         from .dataset import IssueDataset

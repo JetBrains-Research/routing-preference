@@ -4,10 +4,8 @@ from datetime import datetime
 from enum import Enum
 
 from ..models import Issue, Solution
-
-from .batch_scorer import BatchScorer
 from .models import Judgment, Score
-from .prompt_scorer import PromptScorer
+from .scoring import BatchScorer, PromptScorer
 
 
 class ScoringMode(Enum):

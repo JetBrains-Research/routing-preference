@@ -4,10 +4,9 @@ import json
 
 import litellm
 
-from ..models import Issue, Solution
-
-from .loader import CharacteristicLoader, PromptLoader
-from .models import Score
+from ...models import Issue, Solution
+from ..loader import CharacteristicLoader, PromptLoader
+from ..models import Score
 
 
 class BatchScorer:

@@ -1,4 +1,4 @@
-"""Pipeline orchestration for solution generation."""
+"""Pipeline for solution generation."""
 
 import logging
 from pathlib import Path
@@ -12,8 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class Pipeline:
-    """Orchestrates the solution generation pipeline."""
-
     def __init__(self, solutions_dir: Path, environment_type: str = "local"):
         self.generator = SolutionGenerator(environment_type=environment_type)
         self.storage = SolutionStorage(solutions_dir)
@@ -24,12 +22,12 @@ class Pipeline:
         models: list[str],
         limit: int | None = None,
     ) -> None:
-        """Generate solutions for issues in a dataset.
+        """Generate solutions for issues
 
         Args:
-            dataset: The issue dataset to process.
-            models: List of model names (e.g., "anthropic/claude-sonnet-4-5-20250929").
-            limit: Maximum number of issues to process (default: all).
+            dataset: issue dataset to process
+            models: list of model names
+            limit: max number of issues to process (default: all)
         """
         issues = list(dataset)
         if limit is not None:
@@ -44,23 +42,13 @@ class Pipeline:
         for issue in issues:
             self._process_issue(issue, models)
 
-    def run_single(self, issue: Issue, models: list[str]) -> None:
-        """Generate solutions for a single issue.
-
-        Args:
-            issue: The issue to solve.
-            models: List of model names.
-        """
-        self._process_issue(issue, models)
-
     def _process_issue(self, issue: Issue, models: list[str]) -> None:
-        """Process a single issue with multiple models."""
-        logger.info("Processing issue %s: %s", issue.id, issue.title)
+        logger.info("Processing issue %s: %s", issue.issue_id, issue.title)
 
         for model in models:
             logger.info(
                 "Generating solution",
-                extra={"issue_id": issue.id, "model": model},
+                extra={"issue_id": issue.issue_id, "model": model},
             )
             try:
                 solution = self.generator.generate(issue, model)
@@ -69,11 +57,11 @@ class Pipeline:
                     "Saved solution to %s (%dms)",
                     path.name,
                     solution.duration_ms,
-                    extra={"issue_id": issue.id, "model": model},
+                    extra={"issue_id": issue.issue_id, "model": model},
                 )
             except Exception as e:
                 logger.exception(
                     "Failed to generate solution: %s",
                     e,
-                    extra={"issue_id": issue.id, "model": model},
+                    extra={"issue_id": issue.issue_id, "model": model},
                 )

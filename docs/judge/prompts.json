@@ -1,0 +1,26 @@
+{
+    "prompts": {
+        "single": {
+            "V1": "./prompts/single/V1.md",
+            "V2.0": "./prompts/single/V2.0.md",
+            "V2.1": "./prompts/single/V2.1.md"
+        },
+        "batch": {
+            "V1": "./prompts/batch/V1.md"
+        },
+        "ranking": {
+            "V1": "./prompts/ranking/V1.md"
+        }
+    },
+    "characteristics": {
+        "intent": "./characteristics/intent/",
+        "correctness": "./characteristics/correctness/",
+        "scope": "./characteristics/scope/",
+        "quality": "./characteristics/quality/"
+    },
+    "defaults": {
+        "single": "V2.1",
+        "batch": "V1",
+        "ranking": "V1"
+    }
+}

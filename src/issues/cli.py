@@ -6,6 +6,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+logger = logging.getLogger(__name__)
+
 from .classifier import IssueClassifier
 from .collector import IssueCollector
 from .filters import IssueFilter
@@ -54,14 +56,14 @@ def cmd_collect(args) -> None:
     all_issues = []
 
     for repo in repos:
-        print(f"\n{'='*60}")
-        print(f"Collecting from: {repo}")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("Collecting from: %s", repo)
+        logger.info("=" * 60)
 
         try:
             owner, name = repo.split("/")
         except ValueError:
-            print(f"Invalid repo format: {repo} (expected owner/name)")
+            logger.error("Invalid repo format: %s (expected owner/name)", repo)
             continue
 
         # Collect issues
@@ -71,28 +73,28 @@ def cmd_collect(args) -> None:
             state=args.state,
             max_issues=args.max_per_repo,
         ))
-        print(f"Collected: {len(collected)} issues")
+        logger.info("Collected: %d issues", len(collected))
 
         # Filter issues
         passed, rejected = filter_.filter_batch(collected)
-        print(f"After filtering: {len(passed)} issues")
+        logger.info("After filtering: %d issues", len(passed))
 
         # Classify issues
         classified = classifier.classify_batch(passed, use_llm_fallback=args.use_llm)
-        print(f"Classified: {len(classified)} issues")
+        logger.info("Classified: %d issues", len(classified))
 
         # Get base commits if requested
         if args.fetch_commits:
-            print("Fetching base commits...")
+            logger.info("Fetching base commits...")
             for issue in classified:
                 collector.enrich_with_base_commit(issue)
 
         all_issues.extend(classified)
 
     # Save results
-    print(f"\n{'='*60}")
-    print(f"Total collected: {len(all_issues)} issues")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Total collected: %d issues", len(all_issues))
+    logger.info("=" * 60)
 
     if args.batch_file:
         storage.save_batch(all_issues, args.batch_file)
@@ -100,9 +102,9 @@ def cmd_collect(args) -> None:
         for issue in all_issues:
             storage.save(issue)
 
-    # Print filter stats
-    print("\nFilter Statistics:")
-    print(filter_.get_stats().summary())
+    # Log filter stats
+    logger.info("Filter Statistics:")
+    logger.info(filter_.get_stats().summary())
 
 
 def cmd_filter(args) -> None:
@@ -114,23 +116,23 @@ def cmd_filter(args) -> None:
     )
 
     issues = list(storage.load_all())
-    print(f"Loaded {len(issues)} issues")
+    logger.info("Loaded %d issues", len(issues))
 
     passed, rejected = filter_.filter_batch(issues)
-    print(f"Passed: {len(passed)}")
-    print(f"Rejected: {len(rejected)}")
+    logger.info("Passed: %d", len(passed))
+    logger.info("Rejected: %d", len(rejected))
 
     if args.output:
         out_storage = IssueStorage(args.output)
         out_storage.save_batch(passed, "filtered_issues.json")
 
-    print("\nFilter Statistics:")
-    print(filter_.get_stats().summary())
+    logger.info("Filter Statistics:")
+    logger.info(filter_.get_stats().summary())
 
     if args.show_rejected:
-        print("\nRejected issues:")
+        logger.info("Rejected issues:")
         for issue, reason in rejected[:20]:
-            print(f"  {issue.id}: {reason}")
+            logger.info("  %s: %s", issue.issue_id, reason)
 
 
 def cmd_classify(args) -> None:
@@ -139,24 +141,24 @@ def cmd_classify(args) -> None:
     classifier = IssueClassifier(llm_model=args.model)
 
     issues = list(storage.load_all())
-    print(f"Loaded {len(issues)} issues")
+    logger.info("Loaded %d issues", len(issues))
 
     classified = classifier.classify_batch(issues, use_llm_fallback=args.use_llm)
 
-    # Print stats
+    # Log stats
     type_counts = {}
     complexity_counts = {}
     for issue in classified:
         type_counts[issue.issue_type.value] = type_counts.get(issue.issue_type.value, 0) + 1
         complexity_counts[issue.complexity.value] = complexity_counts.get(issue.complexity.value, 0) + 1
 
-    print("\nIssue Types:")
+    logger.info("Issue Types:")
     for t, count in sorted(type_counts.items()):
-        print(f"  {t}: {count}")
+        logger.info("  %s: %d", t, count)
 
-    print("\nComplexity:")
+    logger.info("Complexity:")
     for c, count in sorted(complexity_counts.items()):
-        print(f"  {c}: {count}")
+        logger.info("  %s: %d", c, count)
 
     if args.output:
         out_storage = IssueStorage(args.output)
@@ -169,37 +171,37 @@ def cmd_reviewers(args) -> None:
 
     if args.action == "import":
         if not args.repos:
-            print("Error: --repos required for import action")
+            logger.error("--repos required for import action")
             return
         collector = IssueCollector()
         for repo in args.repos:
             owner, name = repo.split("/")
             maintainers = collector.get_maintainers(owner, name, limit=args.limit)
             manager.import_maintainers(repo, maintainers)
-            print(f"Imported {len(maintainers)} maintainers from {repo}")
+            logger.info("Imported %d maintainers from %s", len(maintainers), repo)
 
     elif args.action == "consent":
         if not args.usernames:
-            print("Error: --usernames required for consent action")
+            logger.error("--usernames required for consent action")
             return
         for username in args.usernames:
             if manager.set_consent(username, True):
-                print(f"Granted consent for {username}")
+                logger.info("Granted consent for %s", username)
             else:
-                print(f"Reviewer not found: {username}")
+                logger.warning("Reviewer not found: %s", username)
 
     elif args.action == "list":
         reviewers = manager.list_reviewers()
-        print(f"Total reviewers: {len(reviewers)}")
+        logger.info("Total reviewers: %d", len(reviewers))
         for r in reviewers:
             status = "consented" if r.consent_given else "pending"
-            print(f"  {r.github_username} ({status}): {r.repos}")
+            logger.info("  %s (%s): %s", r.github_username, status, r.repos)
 
     elif args.action == "stats":
         stats = manager.get_stats()
-        print("Reviewer Statistics:")
+        logger.info("Reviewer Statistics:")
         for key, value in stats.items():
-            print(f"  {key}: {value}")
+            logger.info("  %s: %s", key, value)
 
 
 def cmd_assign(args) -> None:
@@ -208,12 +210,12 @@ def cmd_assign(args) -> None:
     manager = ReviewerManager(args.reviewers_dir)
 
     issues = list(storage.load_all())
-    print(f"Loaded {len(issues)} issues")
+    logger.info("Loaded %d issues", len(issues))
 
     assigned, unassigned = manager.bulk_assign(issues)
 
-    print(f"Assigned: {len(assigned)}")
-    print(f"Unassigned: {len(unassigned)}")
+    logger.info("Assigned: %d", len(assigned))
+    logger.info("Unassigned: %d", len(unassigned))
 
     output_dir = args.output if args.output else args.input
     out_storage = IssueStorage(output_dir)
@@ -226,14 +228,14 @@ def cmd_export(args) -> None:
     hf_storage = HuggingFaceStorage(args.dataset_name)
 
     issues = storage.load_batch(args.batch_file) if args.batch_file else list(storage.load_all())
-    print(f"Loaded {len(issues)} issues")
+    logger.info("Loaded %d issues", len(issues))
 
     path = hf_storage.export(
         issues,
         push_to_hub=args.push,
         token=args.token,
     )
-    print(f"Exported to {path}")
+    logger.info("Exported to %s", path)
 
 
 def main() -> None:

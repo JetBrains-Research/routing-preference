@@ -5,7 +5,7 @@ from dataclasses import asdict
 from pathlib import Path
 from uuid import uuid4
 
-from .ranking_models import ComparativeJudgment, Ranking
+from .models import ComparativeJudgment, Ranking
 
 
 class RankingStorage:

@@ -1,6 +1,6 @@
 """Characteristic definitions for the judge"""
 
-from .models import Characteristic
+from ..models import Characteristic
 
 # Base prompt structure shared by all characteristics
 _BASE_PROMPT = """You are evaluating a code solution for a GitHub issue.

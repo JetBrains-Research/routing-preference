@@ -4,9 +4,8 @@ import re
 
 import litellm
 
-from ..models import Issue, Solution
-
-from .models import Characteristic, Score
+from ...models import Issue, Solution
+from ..models import Characteristic, Score
 
 
 class CharacteristicScorer:

@@ -2,10 +2,10 @@
 
 from datetime import datetime
 
-from ..models import Issue, Solution
-from .characteristics import CHARACTERISTICS
-from .ranking_models import ComparativeJudgment, Ranking
-from .ranking_scorer import RankingScorer
+from ...models import Issue, Solution
+from ..legacy import CHARACTERISTICS
+from .models import ComparativeJudgment, Ranking
+from .scorer import RankingScorer
 
 
 class RankingJudge:
@@ -38,7 +38,7 @@ class RankingJudge:
         overall_ranks = self._calculate_overall_ranks(rankings, solutions)
 
         return ComparativeJudgment(
-            issue_id=issue.id,
+            issue_id=issue.issue_id,
             solution_models=[s.model for s in solutions],
             judge_model=self.model,
             rankings=rankings,
