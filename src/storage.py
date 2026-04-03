@@ -35,10 +35,14 @@ class SolutionStorage:
         folder_path.mkdir(parents=True, exist_ok=True)
 
         issue_path = folder_path / "issue.json"
-        self._atomic_write(issue_path, json.dumps(asdict(issue), indent=2, ensure_ascii=False))
+        self._atomic_write(
+            issue_path, json.dumps(asdict(issue), indent=2, ensure_ascii=False)
+        )
 
         solution_path = folder_path / "solution.json"
-        self._atomic_write(solution_path, json.dumps(asdict(solution), indent=2, ensure_ascii=False))
+        self._atomic_write(
+            solution_path, json.dumps(asdict(solution), indent=2, ensure_ascii=False)
+        )
 
         if solution.diff:
             diff_path = folder_path / "patch.diff"

@@ -18,11 +18,13 @@ DEFAULT_CUTOFF_DAYS = 730  # 2 years
 
 class GitHubAPIError(Exception):
     """Error from GitHub API."""
+
     pass
 
 
 class RateLimitError(GitHubAPIError):
     """Rate limit exceeded."""
+
     pass
 
 
@@ -46,10 +48,12 @@ class IssueCollector:
         self.token = token or self._get_token()
         self.cutoff_date = datetime.now() - timedelta(days=cutoff_days)
         self.session = requests.Session()
-        self.session.headers.update({
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        })
+        self.session.headers.update(
+            {
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
+        )
         if self.token:
             self.session.headers["Authorization"] = f"Bearer {self.token}"
 
@@ -99,7 +103,9 @@ class IssueCollector:
                     wait_seconds,
                 )
                 time.sleep(wait_seconds)
-                return self._request(method, endpoint, params, retry_on_rate_limit=False)
+                return self._request(
+                    method, endpoint, params, retry_on_rate_limit=False
+                )
             # Check if it's actually a rate limit issue
             if remaining == "0":
                 raise RateLimitError("GitHub API rate limit exceeded")
@@ -132,9 +138,9 @@ class IssueCollector:
                 params={"per_page": 1},
             )
             if commits:
-                repo.last_commit_date = commits[0].get("commit", {}).get(
-                    "committer", {}
-                ).get("date")
+                repo.last_commit_date = (
+                    commits[0].get("commit", {}).get("committer", {}).get("date")
+                )
         except GitHubAPIError:
             pass
 
@@ -252,7 +258,10 @@ class IssueCollector:
         except GitHubAPIError as e:
             logger.warning(
                 "Failed to get commit for %s/%s at %s: %s",
-                owner, name, target_date, e,
+                owner,
+                name,
+                target_date,
+                e,
             )
         return None
 

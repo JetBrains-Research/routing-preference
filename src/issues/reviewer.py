@@ -48,8 +48,7 @@ class ReviewerManager:
     def _save(self) -> None:
         """Save reviewers to storage."""
         data = {
-            username: asdict(reviewer)
-            for username, reviewer in self._reviewers.items()
+            username: asdict(reviewer) for username, reviewer in self._reviewers.items()
         }
         with open(self.reviewers_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
@@ -85,8 +84,7 @@ class ReviewerManager:
             List of reviewers for this repo.
         """
         return [
-            reviewer for reviewer in self._reviewers.values()
-            if repo in reviewer.repos
+            reviewer for reviewer in self._reviewers.values() if repo in reviewer.repos
         ]
 
     def get_available_reviewer(self, repo: str) -> Reviewer | None:

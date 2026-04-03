@@ -57,7 +57,9 @@ class IssueStorage:
 
         return file_path
 
-    def save_batch(self, issues: list[CollectedIssue], filename: str = "issues.json") -> Path:
+    def save_batch(
+        self, issues: list[CollectedIssue], filename: str = "issues.json"
+    ) -> Path:
         """Save multiple issues to a single JSON file.
 
         Args:
@@ -118,7 +120,9 @@ class IssueStorage:
             return []
 
         if not isinstance(data, list):
-            logger.warning("Expected list in %s, got %s", file_path, type(data).__name__)
+            logger.warning(
+                "Expected list in %s, got %s", file_path, type(data).__name__
+            )
             return []
 
         issues = []

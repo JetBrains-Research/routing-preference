@@ -56,7 +56,8 @@ def _run_scoring(args) -> None:
         folders = [args.solution]
     elif args.force:
         folders = [
-            f.name for f in sorted(args.solutions_dir.iterdir())
+            f.name
+            for f in sorted(args.solutions_dir.iterdir())
             if f.is_dir() and (f / "solution.json").exists()
         ]
     else:
@@ -152,6 +153,7 @@ def _find_solutions_for_issue(solutions_dir: Path, issue_id: str) -> list:
 
     return results
 
+
 def main() -> None:
     """Main entry point."""
     load_dotenv()
@@ -165,27 +167,43 @@ def main() -> None:
     # --- generate ---
     gen_parser = subparsers.add_parser("generate", help="Generate solutions for issues")
     gen_parser.add_argument(
-        "--dataset", "-d", required=True,
+        "--dataset",
+        "-d",
+        required=True,
         help="HuggingFace dataset name or path to local JSON file",
     )
     gen_parser.add_argument(
-        "--split", "-s", default="test",
+        "--split",
+        "-s",
+        default="test",
         help="Dataset split to use (default: test)",
     )
     gen_parser.add_argument(
-        "--model", "-m", action="append", dest="models", default=[],
+        "--model",
+        "-m",
+        action="append",
+        dest="models",
+        default=[],
         help="Model to use in LiteLLM format",
     )
     gen_parser.add_argument(
-        "--limit", "-l", type=int, default=None,
+        "--limit",
+        "-l",
+        type=int,
+        default=None,
         help="Maximum number of issues to process",
     )
     gen_parser.add_argument(
-        "--output", "-o", type=Path, default=DEFAULT_SOLUTIONS_DIR,
+        "--output",
+        "-o",
+        type=Path,
+        default=DEFAULT_SOLUTIONS_DIR,
         help=f"Output directory (default: {DEFAULT_SOLUTIONS_DIR})",
     )
     gen_parser.add_argument(
-        "--sandbox", choices=["local", "docker"], default="local",
+        "--sandbox",
+        choices=["local", "docker"],
+        default="local",
         help="Execution environment (default: local)",
     )
     gen_parser.set_defaults(func=cmd_generate)
@@ -193,39 +211,57 @@ def main() -> None:
     # --- judge ---
     judge_parser = subparsers.add_parser("judge", help="Judge solutions")
     judge_parser.add_argument(
-        "--solutions-dir", "-s", type=Path, default=DEFAULT_SOLUTIONS_DIR,
+        "--solutions-dir",
+        "-s",
+        type=Path,
+        default=DEFAULT_SOLUTIONS_DIR,
         help=f"Directory containing solutions (default: {DEFAULT_SOLUTIONS_DIR})",
     )
     judge_parser.add_argument(
-        "--rankings-dir", type=Path, default=DEFAULT_RANKINGS_DIR,
+        "--rankings-dir",
+        type=Path,
+        default=DEFAULT_RANKINGS_DIR,
         help=f"Directory for rankings (default: {DEFAULT_RANKINGS_DIR})",
     )
     judge_parser.add_argument(
-        "--model", "-m", default="openai/gpt-4o",
+        "--model",
+        "-m",
+        default="openai/gpt-4o",
         help="Model to use for judging (default: openai/gpt-4o)",
     )
     judge_parser.add_argument(
-        "--solution", type=str,
+        "--solution",
+        type=str,
         help="Score a specific solution folder",
     )
     judge_parser.add_argument(
-        "--rank", type=str, metavar="ISSUE_ID",
+        "--rank",
+        type=str,
+        metavar="ISSUE_ID",
         help="Rank all solutions for an issue comparatively",
     )
     judge_parser.add_argument(
-        "--force", "-f", action="store_true",
+        "--force",
+        "-f",
+        action="store_true",
         help="Re-judge solutions that already have judgments",
     )
     judge_parser.add_argument(
-        "--mode", choices=["single", "batch"], default="batch",
+        "--mode",
+        choices=["single", "batch"],
+        default="batch",
         help="Scoring mode (default: batch)",
     )
     judge_parser.add_argument(
-        "--prompt-version", type=str, default=None,
+        "--prompt-version",
+        type=str,
+        default=None,
         help="Prompt template version",
     )
     judge_parser.add_argument(
-        "--verbose", "-v", action="store_true",
+        "--verbose",
+        "-v",
+        action="store_true",
         help="Enable verbose logging",
     )
     judge_parser.set_defaults(func=cmd_judge)

@@ -65,6 +65,7 @@ LOW_QUALITY_TITLES = [
 @dataclass
 class FilterResult:
     """Result of applying a filter."""
+
     passed: bool
     reason: str = ""
 
@@ -72,6 +73,7 @@ class FilterResult:
 @dataclass
 class FilterStats:
     """Statistics about filtering."""
+
     total_processed: int = 0
     total_passed: int = 0
     filter_counts: dict[str, int] = field(default_factory=dict)
@@ -83,7 +85,7 @@ class FilterStats:
     def summary(self) -> str:
         lines = [
             f"Processed: {self.total_processed}",
-            f"Passed: {self.total_passed} ({100*self.total_passed/max(1,self.total_processed):.1f}%)",
+            f"Passed: {self.total_passed} ({100 * self.total_passed / max(1, self.total_processed):.1f}%)",
             "Filtered out by:",
         ]
         for name, count in sorted(self.filter_counts.items(), key=lambda x: -x[1]):
