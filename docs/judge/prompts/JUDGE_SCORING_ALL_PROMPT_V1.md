@@ -65,7 +65,23 @@ Respond with valid JSON only. Do not include any text outside the JSON block.
 
 <OUTPUT>
 {
-    "score": <integer_between_1_and_5>,
-    "reasoning": "<your_reasoning_in_one_to_three_sentences>"
+    "characteristics": {
+        "<CHARACTERISTIC_1_NAME.md>": {
+            "score": <integer_between_1_and_5>,
+            "reasoning": "<brief_reasoning_in_one_to_three_sentences>"
+        },
+        "<CHARACTERISTIC_2_NAME.md>": {
+            "score": <integer_between_1_and_5>,
+            "reasoning": "<brief_reasoning_in_one_to_three_sentences>"
+        },
+        "<CHARACTERISTIC_3_NAME.md>": {
+            "score": <integer_between_1_and_5>,
+            "reasoning": "<brief_reasoning_in_one_to_three_sentences>"
+        },
+        "<CHARACTERISTIC_4_NAME.md>": {
+            "score": <integer_between_1_and_5>,
+            "reasoning": "<brief_reasoning_in_one_to_three_sentences>"
+        }
+    },
 }
 </OUTPUT>
