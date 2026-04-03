@@ -63,7 +63,6 @@ You are an LLM judge assessing a coding solution based on these 4 characteristic
 
 Respond with valid JSON only. Do not include any text outside the JSON block.
 
-<OUTPUT>
 {
     "characteristics": {
         "<CHARACTERISTIC_1_NAME.md>": {
@@ -84,4 +83,3 @@ Respond with valid JSON only. Do not include any text outside the JSON block.
         }
     }
 }
-</OUTPUT>
