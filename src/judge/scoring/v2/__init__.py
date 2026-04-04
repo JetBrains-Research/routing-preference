@@ -1,4 +1,4 @@
-"""V2 scoring - issue + diff + source files."""
+"""V2 scoring."""
 
 from .scorer import Scorer
 

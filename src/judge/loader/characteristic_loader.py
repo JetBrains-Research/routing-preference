@@ -69,19 +69,14 @@ class CharacteristicLoader:
         if not char_dir.exists():
             raise ValueError(f"Characteristic not found: {characteristic_id}")
 
-        prefix = characteristic_id.upper()
         char = LoadedCharacteristic(
             id=characteristic_id,
-            name=self._load_file(char_dir / f"{prefix}_NAME.md"),
-            short_description=self._load_file(char_dir / f"{prefix}_SHORT.md"),
-            long_description=self._load_file(char_dir / f"{prefix}_LONG.md"),
-            basis=self._load_file(char_dir / f"{prefix}_BASIS.md"),
-            scoring_steps_v1=self._load_file(
-                char_dir / f"{prefix}_SCORING_STEPS_V1.md"
-            ),
-            scoring_steps_v2=self._load_file(
-                char_dir / f"{prefix}_SCORING_STEPS_V2.md"
-            ),
+            name=self._load_file(char_dir / "NAME.md"),
+            short_description=self._load_file(char_dir / "SHORT.md"),
+            long_description=self._load_file(char_dir / "LONG.md"),
+            basis=self._load_file(char_dir / "BASIS.md"),
+            scoring_steps_v1=self._load_file(char_dir / "SCORING_STEPS_V1.md"),
+            scoring_steps_v2=self._load_file(char_dir / "SCORING_STEPS_V2.md"),
         )
 
         self._cache[characteristic_id] = char
