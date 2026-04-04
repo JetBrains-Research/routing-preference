@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 DEFAULT_SOLUTIONS_DIR = PROJECT_ROOT / "data" / "solutions"
-DEFAULT_RANKINGS_DIR = PROJECT_ROOT / "data" / "rankings"
 
 
 def cmd_generate(args) -> None:
@@ -33,21 +32,12 @@ def cmd_generate(args) -> None:
 
 def cmd_judge(args) -> None:
     """Judge solutions."""
-    if args.rank:
-        _run_ranking(args)
-    else:
-        _run_scoring(args)
-
-
-def _run_scoring(args) -> None:
-    """Run absolute scoring for solutions."""
     from .models import Issue, Solution
     from .judge import Judge, JudgmentStorage
 
     judge = Judge(model=args.model, version=args.version)
     storage = JudgmentStorage(args.solutions_dir)
 
-    # Get folders to process
     if args.solution:
         folders = [args.solution]
     elif args.force:
@@ -71,83 +61,10 @@ def _run_scoring(args) -> None:
                 solution = Solution(**json.load(f))
 
             judgment = judge.judge(issue, solution, folder_name)
-            path = storage.save(judgment)
+            storage.save(judgment)
             logger.info("  %s: %.2f", folder_name, judgment.overall_score)
         except Exception as e:
             logger.error("  %s: FAILED - %s", folder_name, e)
-
-
-def _run_ranking(args) -> None:
-    """Run comparative ranking for an issue."""
-    from .models import Issue, Solution
-    from .judge.ranking import RankingJudge, RankingStorage
-
-    logger.info("Finding solutions for issue: %s", args.rank)
-    found = _find_solutions_for_issue(args.solutions_dir, args.rank)
-
-    if not found:
-        logger.info("No solutions found for issue: %s", args.rank)
-        return
-
-    logger.info("Found %d solutions:", len(found))
-    for folder, _, solution in found:
-        logger.info("  - %s (%s)", solution.model, folder.name)
-
-    if len(found) < 2:
-        logger.info("Need at least 2 solutions to rank. Exiting.")
-        return
-
-    issue = found[0][1]
-    solutions = [sol for _, _, sol in found]
-
-    logger.info("Ranking with model: %s", args.model)
-    judge = RankingJudge(model=args.model)
-    judgment = judge.judge(issue, solutions)
-
-    storage = RankingStorage(args.rankings_dir)
-    path = storage.save(judgment)
-    logger.info("Saved ranking to: %s", path)
-
-    logger.info("=== Rankings ===")
-    for ranking in judgment.rankings:
-        logger.info("%s:", ranking.characteristic_id)
-        sorted_models = sorted(ranking.ranks.items(), key=lambda x: x[1])
-        for model, rank in sorted_models:
-            logger.info("  %d. %s", rank, model)
-
-    logger.info("=== Overall (average rank) ===")
-    sorted_overall = sorted(judgment.overall_ranks.items(), key=lambda x: x[1])
-    for model, avg_rank in sorted_overall:
-        logger.info("  %.2f - %s", avg_rank, model)
-
-
-def _find_solutions_for_issue(solutions_dir: Path, issue_id: str) -> list:
-    """Find all solutions for a given issue ID."""
-    from .models import Issue, Solution
-
-    results = []
-    for folder in sorted(solutions_dir.iterdir()):
-        if not folder.is_dir():
-            continue
-
-        solution_file = folder / "solution.json"
-        issue_file = folder / "issue.json"
-        if not solution_file.exists() or not issue_file.exists():
-            continue
-
-        try:
-            with open(issue_file, encoding="utf-8") as f:
-                issue = Issue(**json.load(f))
-            with open(solution_file, encoding="utf-8") as f:
-                solution = Solution(**json.load(f))
-        except (OSError, json.JSONDecodeError, TypeError, ValueError) as e:
-            logger.warning("Skipping %s due to error: %s", folder.name, e)
-            continue
-
-        if issue.issue_id == issue_id:
-            results.append((folder, issue, solution))
-
-    return results
 
 
 def main() -> None:
@@ -163,35 +80,30 @@ def main() -> None:
     # --- generate ---
     gen_parser = subparsers.add_parser("generate", help="Generate solutions for issues")
     gen_parser.add_argument(
-        "--dataset",
-        "-d",
+        "--dataset", "-d",
         required=True,
         help="HuggingFace dataset name or path to local JSON file",
     )
     gen_parser.add_argument(
-        "--split",
-        "-s",
+        "--split", "-s",
         default="test",
         help="Dataset split to use (default: test)",
     )
     gen_parser.add_argument(
-        "--model",
-        "-m",
+        "--model", "-m",
         action="append",
         dest="models",
         default=[],
         help="Model to use in LiteLLM format",
     )
     gen_parser.add_argument(
-        "--limit",
-        "-l",
+        "--limit", "-l",
         type=int,
         default=None,
         help="Maximum number of issues to process",
     )
     gen_parser.add_argument(
-        "--output",
-        "-o",
+        "--output", "-o",
         type=Path,
         default=DEFAULT_SOLUTIONS_DIR,
         help=f"Output directory (default: {DEFAULT_SOLUTIONS_DIR})",
@@ -207,21 +119,13 @@ def main() -> None:
     # --- judge ---
     judge_parser = subparsers.add_parser("judge", help="Judge solutions")
     judge_parser.add_argument(
-        "--solutions-dir",
-        "-s",
+        "--solutions-dir", "-s",
         type=Path,
         default=DEFAULT_SOLUTIONS_DIR,
         help=f"Directory containing solutions (default: {DEFAULT_SOLUTIONS_DIR})",
     )
     judge_parser.add_argument(
-        "--rankings-dir",
-        type=Path,
-        default=DEFAULT_RANKINGS_DIR,
-        help=f"Directory for rankings (default: {DEFAULT_RANKINGS_DIR})",
-    )
-    judge_parser.add_argument(
-        "--model",
-        "-m",
+        "--model", "-m",
         default="openai/gpt-4o",
         help="Model to use for judging (default: openai/gpt-4o)",
     )
@@ -231,14 +135,7 @@ def main() -> None:
         help="Score a specific solution folder",
     )
     judge_parser.add_argument(
-        "--rank",
-        type=str,
-        metavar="ISSUE_ID",
-        help="Rank all solutions for an issue comparatively",
-    )
-    judge_parser.add_argument(
-        "--force",
-        "-f",
+        "--force", "-f",
         action="store_true",
         help="Re-judge solutions that already have judgments",
     )
@@ -249,8 +146,7 @@ def main() -> None:
         help="Scoring version: V1 (issue+diff) or V2.x (issue+diff+sources)",
     )
     judge_parser.add_argument(
-        "--verbose",
-        "-v",
+        "--verbose", "-v",
         action="store_true",
         help="Enable verbose logging",
     )
@@ -259,15 +155,9 @@ def main() -> None:
     args = parser.parse_args()
 
     if hasattr(args, "verbose") and args.verbose:
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="%(asctime)s %(levelname)s %(message)s",
-        )
+        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
     else:
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s %(levelname)s %(message)s",
-        )
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
     args.func(args)
     logger.info("Done!")
