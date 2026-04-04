@@ -12,8 +12,6 @@ CHARACTERISTIC_ORDER = ["intent", "correctness", "scope", "quality"]
 
 
 class Scorer:
-    """V2 scorer - scores using issue + diff + source files."""
-
     def __init__(self, model: str = "openai/gpt-4o", prompt_version: str = "V2.1"):
         self.model = model
         self.prompt_version = prompt_version
@@ -26,18 +24,49 @@ class Scorer:
         solution: Solution,
         source_files: dict[str, str],
     ) -> list[Score]:
-        """Score all characteristics in a single LLM call.
-
-        Args:
-            issue: The issue being solved.
-            solution: The proposed solution.
-            source_files: Dict of filepath -> content for relevant source files.
-        """
-        prompt = self._build_prompt(issue, solution, source_files)
+        """Score all characteristics in a single LLM call (batch)."""
+        prompt = self._build_batch_prompt(issue, solution, source_files)
         response = self._call_llm(prompt)
-        return self._parse_response(response)
+        return self._parse_batch_response(response)
 
-    def _build_prompt(
+    def score_single(
+        self,
+        characteristic_id: str,
+        issue: Issue,
+        solution: Solution,
+        source_files: dict[str, str],
+    ) -> Score:
+        """Score a single characteristic."""
+        prompt = self._build_single_prompt(characteristic_id, issue, solution, source_files)
+        response = self._call_llm(prompt)
+        return self._parse_single_response(response, characteristic_id)
+
+    def score_each(
+        self,
+        issue: Issue,
+        solution: Solution,
+        source_files: dict[str, str],
+    ) -> list[Score]:
+        """Score all characteristics one at a time (multiple LLM calls)."""
+        return [
+            self.score_single(cid, issue, solution, source_files)
+            for cid in CHARACTERISTIC_ORDER
+        ]
+
+    def _build_context(
+        self,
+        issue: Issue,
+        solution: Solution,
+        source_files: dict[str, str],
+    ) -> str:
+        context = self.prompt_loader.load_context(version="V2")
+        context = context.replace("<ISSUE_TITLE>", issue.title)
+        context = context.replace("<ISSUE_BODY>", issue.body)
+        context = context.replace("<SOURCE_FILES>", self._format_source_files(source_files))
+        context = context.replace("<SOLUTION_DIFF>", solution.diff)
+        return context
+
+    def _build_batch_prompt(
         self,
         issue: Issue,
         solution: Solution,
@@ -45,14 +74,22 @@ class Scorer:
     ) -> str:
         template = self.prompt_loader.load_batch_prompt(
             characteristic_ids=CHARACTERISTIC_ORDER,
-            version="V1",  # batch prompt is same, context differs
+            version="V1",
         )
-        context = self.prompt_loader.load_context(version="V2")
-        context = context.replace("<ISSUE_TITLE>", issue.title)
-        context = context.replace("<ISSUE_BODY>", issue.body)
-        context = context.replace("<SOURCE_FILES>", self._format_source_files(source_files))
-        context = context.replace("<SOLUTION_DIFF>", solution.diff)
-        return template + "\n\n" + context
+        return template + "\n\n" + self._build_context(issue, solution, source_files)
+
+    def _build_single_prompt(
+        self,
+        characteristic_id: str,
+        issue: Issue,
+        solution: Solution,
+        source_files: dict[str, str],
+    ) -> str:
+        template = self.prompt_loader.load_single_prompt(
+            characteristic_id=characteristic_id,
+            version=self.prompt_version,
+        )
+        return template + "\n\n" + self._build_context(issue, solution, source_files)
 
     def _format_source_files(self, source_files: dict[str, str]) -> str:
         if not source_files:
@@ -75,7 +112,21 @@ class Scorer:
             raise ValueError("LLM returned empty response")
         return content
 
-    def _parse_response(self, response: str) -> list[Score]:
+    def _parse_single_response(self, response: str, characteristic_id: str) -> Score:
+        data = json.loads(response)
+        score_value = data.get("score")
+        reasoning = data.get("reasoning", "")
+
+        if not isinstance(score_value, int) or not 1 <= score_value <= 5:
+            raise ValueError(f"Score must be 1-5, got: {score_value}")
+
+        return Score(
+            characteristic_id=characteristic_id,
+            value=score_value,
+            reasoning=reasoning,
+        )
+
+    def _parse_batch_response(self, response: str) -> list[Score]:
         data = json.loads(response)
         characteristics = data.get("characteristics", {})
         scores = []

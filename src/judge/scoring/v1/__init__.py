@@ -1,4 +1,4 @@
-"""V1 scoring - issue + diff only."""
+"""V1 scoring."""
 
 from .scorer import Scorer
 
