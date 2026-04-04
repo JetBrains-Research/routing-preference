@@ -7,30 +7,26 @@ from dataclasses import dataclass, field
 class Issue:
     """A GitHub issue to solve."""
 
-    # Core fields (required)
-    id: str
+    # Required fields
+    issue_id: str
     repo: str
     number: int
     title: str
     body: str
+    assigned_reviewer: str | None = None
+    reviewer_type: str | None = None  # maintainer/author
 
-    # Optional fields
+    # Optional
     labels: list[str] = field(default_factory=list)
     base_commit: str | None = None
-
-    # Metadata (from collection)
-    issue_type: str | None = None      # bug/feature/other
-    complexity: str | None = None      # simple/medium/complex
+    issue_type: str | None = None  # bug/feature/other
+    complexity: str | None = None  # simple/medium/complex
     created_at: str | None = None
     author: str | None = None
     html_url: str | None = None
-    state: str | None = None           # open/closed
+    state: str | None = None  # open/closed
     comments_count: int | None = None
     reactions_count: int | None = None
-
-    # Reviewer assignment
-    assigned_reviewer: str | None = None
-    reviewer_type: str | None = None   # maintainer/author
 
 
 @dataclass

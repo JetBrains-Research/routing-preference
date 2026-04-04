@@ -48,8 +48,7 @@ class ReviewerManager:
     def _save(self) -> None:
         """Save reviewers to storage."""
         data = {
-            username: asdict(reviewer)
-            for username, reviewer in self._reviewers.items()
+            username: asdict(reviewer) for username, reviewer in self._reviewers.items()
         }
         with open(self.reviewers_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
@@ -85,8 +84,7 @@ class ReviewerManager:
             List of reviewers for this repo.
         """
         return [
-            reviewer for reviewer in self._reviewers.values()
-            if repo in reviewer.repos
+            reviewer for reviewer in self._reviewers.values() if repo in reviewer.repos
         ]
 
     def get_available_reviewer(self, repo: str) -> Reviewer | None:
@@ -139,7 +137,7 @@ class ReviewerManager:
             issue.reviewer_type = "author"
             logger.info(
                 "Assigned %s to author %s (no maintainer available)",
-                issue.id,
+                issue.issue_id,
                 issue.author,
             )
             return issue
@@ -147,14 +145,14 @@ class ReviewerManager:
         if reviewer is None:
             logger.warning(
                 "No available reviewer for %s (repo: %s, no author either)",
-                issue.id,
+                issue.issue_id,
                 issue.repo,
             )
             return issue
 
         # Update reviewer's assignments (avoid duplicates)
-        if issue.id not in reviewer.assigned_issues:
-            reviewer.assigned_issues.append(issue.id)
+        if issue.issue_id not in reviewer.assigned_issues:
+            reviewer.assigned_issues.append(issue.issue_id)
             self._save()
 
         # Update issue
@@ -163,7 +161,7 @@ class ReviewerManager:
 
         logger.info(
             "Assigned %s to %s %s",
-            issue.id,
+            issue.issue_id,
             reviewer_type,
             reviewer.github_username,
         )

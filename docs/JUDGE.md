@@ -2,51 +2,103 @@
 
 ## Overview
 
-The judge evaluates solutions on 7 characteristics. These evaluations are used internally for **pair selection**, finding solution pairs with similar overall quality but different characteristic profiles. The scores are **not shown to users**.
+The judge evaluates solutions on 4 characteristics using a 1-5 scale. Evaluations are used internally for **pair selection**, finding solution pairs with similar overall quality but different characteristic profiles. The scores are **not shown to users**.
 
-Two modes are available:
-- **Absolute Scoring**: Each solution scored 1-10 independently
-- **Comparative Ranking**: All solutions for an issue ranked against each other
+Two scoring modes are available:
+- **Batch** (default): All 4 characteristics scored in a single LLM call
+- **Single**: One LLM call per characteristic (useful for debugging)
+
+Additionally, **Comparative Ranking** can rank all solutions for an issue against each other.
 
 ## Characteristics
 
 | Characteristic | Description |
 |----------------|-------------|
-| **Correctness** | Does the solution correctly solve the issue? |
-| **Completeness** | Does it address all aspects of the issue? |
-| **Readability** | Is the code easy to read and understand? |
-| **Maintainability** | Is the code well-structured and maintainable? |
-| **Efficiency** | Is the solution performant? |
-| **Safety** | Does it handle edge cases and avoid vulnerabilities? |
-| **Minimality** | Are only necessary changes made? |
+| **Intent** | How well the agent grasped what the issue was trying to accomplish or fix |
+| **Correctness** | Whether the solution works correctly, regardless of what it targets |
+| **Scope** | Whether the solution stays within the boundaries of what the issue requested |
+| **Quality** | Readability, maintainability, documentation, and adherence to coding conventions |
+
+Characteristic definitions and scoring rubrics are loaded from `docs/judge/characteristics/`.
 
 ## Usage
 
 ```bash
-# Absolute scoring
-python -m src.judge_cli                                    # Score all unjudged solutions
-python -m src.judge_cli --solution <folder>                # Score a specific solution
-python -m src.judge_cli --no-skip-existing                 # Re-score all solutions
+# Absolute scoring (batch mode - default)
+judge                                      # Score all unjudged solutions
+judge --solution <folder>                  # Score a specific solution
+judge --no-skip-existing                   # Re-score all solutions
+
+# Single mode (one call per characteristic)
+judge --mode single
+
+# Specify prompt version
+judge --prompt-version V1                  # Batch prompt version
+judge --mode single --prompt-version V2.1  # Single prompt version
 
 # Comparative ranking
-python -m src.judge_cli --rank sympy__sympy-11400          # Rank all solutions for an issue
+judge --rank sympy__sympy-11400            # Rank all solutions for an issue
+
+# Other options
+judge --judge-model anthropic/claude-sonnet-4  # Use a different judge model
+judge -v                                   # Verbose logging
 ```
 
 ## How It Works
 
-### Absolute Scoring
+### Batch Scoring (Default)
 
-1. **Input**: Issue (title + body) and one solution diff
-2. **Process**: 7 LLM calls per solution (one per characteristic)
-3. **Output**: Scores 1-10 with reasoning for each characteristic
+1. **Input**: Issue (title + body) and solution diff
+2. **Process**: Single LLM call scores all 4 characteristics
+3. **Output**: JSON with scores 1-5 and reasoning for each characteristic
+
+### Single Scoring
+
+1. **Input**: Issue and solution diff
+2. **Process**: 4 separate LLM calls (one per characteristic)
+3. **Output**: Same format as batch
 
 ### Comparative Ranking
 
 1. **Input**: Issue and all solution diffs presented together
-2. **Process**: 7 LLM calls per issue (one per characteristic)
+2. **Process**: LLM ranks solutions against each other per characteristic
 3. **Output**: Rankings (1st, 2nd, 3rd...) for each characteristic
 
 The judge sees only the diff, not the full agent trajectory.
+
+## Prompt Templates
+
+Prompts are organized in `docs/judge/prompts/` by type:
+
+```
+docs/judge/
+  prompts.json               # Configuration and version mappings
+  prompts/
+    single/                  # One characteristic per call
+      V1.md
+      V2.0.md
+      V2.1.md
+    batch/                   # All characteristics in one call
+      V1.md
+    ranking/                 # Comparative ranking
+      V1.md
+  characteristics/
+    intent/
+    correctness/
+    scope/
+    quality/
+```
+
+Configuration in `prompts.json`:
+```json
+{
+  "prompts": { "single": { "V1": "./prompts/single/V1.md", ... } },
+  "characteristics": { "intent": "./characteristics/intent/", ... },
+  "defaults": { "single": "V2.1", "batch": "V1", "ranking": "V1" }
+}
+```
+
+Templates use placeholders like `<CHARACTERISTIC_NAME.md>` that are replaced with content from the characteristic files.
 
 ## Output
 
@@ -72,11 +124,15 @@ Example:
   "solution_model": "openai/gpt-4o-mini",
   "judge_model": "openai/gpt-4o",
   "scores": [
-    {"characteristic_id": "correctness", "value": 8, "reasoning": "..."},
-    {"characteristic_id": "completeness", "value": 7, "reasoning": "..."}
+    {"characteristic_id": "intent", "value": 4, "reasoning": "..."},
+    {"characteristic_id": "correctness", "value": 5, "reasoning": "..."},
+    {"characteristic_id": "scope", "value": 4, "reasoning": "..."},
+    {"characteristic_id": "quality", "value": 3, "reasoning": "..."}
   ],
-  "overall_score": 7.86,
-  "created_at": "2026-03-25T23:31:29"
+  "overall_score": 4.0,
+  "created_at": "2026-03-25T23:31:29",
+  "prompt_version": "V1",
+  "score_scale": [1, 5]
 }
 ```
 
@@ -112,5 +168,6 @@ Example:
 
 | Mode | Best For |
 |------|----------|
-| **Absolute Scoring** | Independent evaluation, when solutions arrive at different times |
-| **Comparative Ranking** | Direct comparison, more reliable relative ordering |
+| **Batch** | Production use, faster and cheaper (1 LLM call vs 4) |
+| **Single** | Debugging, testing individual characteristic prompts |
+| **Ranking** | Direct comparison when you have multiple solutions for the same issue |
