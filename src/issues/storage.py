@@ -49,7 +49,7 @@ class IssueStorage:
         Returns:
             Path to the saved file.
         """
-        file_path = self.base_path / f"{issue.id}.json"
+        file_path = self.base_path / f"{issue.issue_id}.json"
         data = self._issue_to_dict(issue)
 
         with open(file_path, "w", encoding="utf-8") as f:
@@ -57,7 +57,9 @@ class IssueStorage:
 
         return file_path
 
-    def save_batch(self, issues: list[CollectedIssue], filename: str = "issues.json") -> Path:
+    def save_batch(
+        self, issues: list[CollectedIssue], filename: str = "issues.json"
+    ) -> Path:
         """Save multiple issues to a single JSON file.
 
         Args:
@@ -118,7 +120,9 @@ class IssueStorage:
             return []
 
         if not isinstance(data, list):
-            logger.warning("Expected list in %s, got %s", file_path, type(data).__name__)
+            logger.warning(
+                "Expected list in %s, got %s", file_path, type(data).__name__
+            )
             return []
 
         issues = []
@@ -214,7 +218,7 @@ class HuggingFaceStorage:
         records = []
         for issue in issues:
             record = {
-                "id": issue.id,
+                "id": issue.issue_id,
                 "repo": issue.repo,
                 "number": issue.number,
                 "title": issue.title,

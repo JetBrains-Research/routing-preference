@@ -1,0 +1,8 @@
+{
+    "prompts": {
+        "V1": "./prompts/V1.md"
+    },
+    "defaults": {
+        "prompt": "V1"
+    }
+}
