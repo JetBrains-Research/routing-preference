@@ -50,24 +50,6 @@ class SolutionStorage:
 
         return folder_path
 
-    def load(self, path: Path) -> Solution:
-        """Load a solution"""
-        if path.is_dir():
-            path = path / "solution.json"
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        return Solution(**data)
-
-    def load_all(self) -> list[Solution]:
-        """Load all solutions from the storage directory"""
-        solutions = []
-        for folder in sorted(self.base_path.iterdir()):
-            if folder.is_dir():
-                solution_file = folder / "solution.json"
-                if solution_file.exists():
-                    solutions.append(self.load(solution_file))
-        return solutions
-
     def _atomic_write(self, path: Path, content: str) -> None:
         """Write content to a file atomically"""
         temp_path = path.with_name(f"{path.name}.{uuid4().hex}.tmp")

@@ -54,7 +54,7 @@ class SolutionGenerator:
                 check=True,
                 timeout=5,
             )
-        except Exception as e:
+        except Exception:
             raise RuntimeError("Docker is not running!")
 
     def _remove_workspace(self, workspace: Path) -> None:
