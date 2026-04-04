@@ -82,10 +82,6 @@ class CharacteristicLoader:
         self._cache[characteristic_id] = char
         return char
 
-    def load_all(self) -> list[LoadedCharacteristic]:
-        """Load all characteristics."""
-        return [self.load(cid) for cid in self.list_characteristics()]
-
     def _load_file(self, path: Path) -> str:
         """Load and strip XML tags from a file."""
         if not path.exists():

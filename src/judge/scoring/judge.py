@@ -3,7 +3,7 @@
 from datetime import datetime
 
 from ...models import Issue, Solution
-from ..models import Judgment
+from ..models import Judgment, Score
 from .v1 import Scorer as V1Scorer
 from .v2 import Scorer as V2Scorer
 
@@ -55,3 +55,28 @@ class Judge:
             prompt_version=self.version,
             score_scale=(1, 5),
         )
+
+    def judge_single(
+        self,
+        characteristic_id: str,
+        issue: Issue,
+        solution: Solution,
+        source_files: dict[str, str] | None = None,
+    ) -> Score:
+        """Judge a solution on a single characteristic.
+
+        Args:
+            characteristic_id: The characteristic to score (e.g., "intent", "correctness").
+            issue: The issue being solved.
+            solution: The proposed solution.
+            source_files: Required for V2 - dict of filepath -> content.
+
+        Returns:
+            Score for the specified characteristic.
+        """
+        if self.version == "V1":
+            return self.scorer.score_single(characteristic_id, issue, solution)
+        else:
+            if source_files is None:
+                raise ValueError("V2 scoring requires source_files")
+            return self.scorer.score_single(characteristic_id, issue, solution, source_files)

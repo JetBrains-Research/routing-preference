@@ -7,8 +7,8 @@ def strip_xml_tags(content: str) -> str:
     """Remove XML wrapper tags from content.
 
     Example:
-        Input:  <NAME>Intent Understanding</NAME>
-        Output: Intent Understanding
+        Input:  <NAME>ITEXT</NAME>
+        Output: TEXT
     """
     pattern = r"<[A-Z_]+>(.*?)</[A-Z_]+>"
     match = re.search(pattern, content, re.DOTALL)
