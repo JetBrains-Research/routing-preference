@@ -29,10 +29,6 @@ class Scorer:
         response = self._call_llm(prompt)
         return self._parse_single_response(response, characteristic_id)
 
-    def score_each(self, issue: Issue, solution: Solution) -> list[Score]:
-        """Score all characteristics one at a time (multiple LLM calls)."""
-        return [self.score_single(cid, issue, solution) for cid in CHARACTERISTIC_ORDER]
-
     def _build_context(self, issue: Issue, solution: Solution) -> str:
         context = self.prompt_loader.load_context(version="V1")
         context = context.replace("<ISSUE_TITLE>", issue.title)

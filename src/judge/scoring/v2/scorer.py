@@ -1,4 +1,4 @@
-"""V2 scoring - issue + diff + source files."""
+"""V2 scoring."""
 
 import json
 
@@ -24,7 +24,7 @@ class Scorer:
         solution: Solution,
         source_files: dict[str, str],
     ) -> list[Score]:
-        """Score all characteristics in a single LLM call (batch)."""
+        """Score all characteristics in a single call."""
         prompt = self._build_batch_prompt(issue, solution, source_files)
         response = self._call_llm(prompt)
         return self._parse_batch_response(response)
@@ -40,18 +40,6 @@ class Scorer:
         prompt = self._build_single_prompt(characteristic_id, issue, solution, source_files)
         response = self._call_llm(prompt)
         return self._parse_single_response(response, characteristic_id)
-
-    def score_each(
-        self,
-        issue: Issue,
-        solution: Solution,
-        source_files: dict[str, str],
-    ) -> list[Score]:
-        """Score all characteristics one at a time (multiple LLM calls)."""
-        return [
-            self.score_single(cid, issue, solution, source_files)
-            for cid in CHARACTERISTIC_ORDER
-        ]
 
     def _build_context(
         self,
