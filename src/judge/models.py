@@ -23,5 +23,8 @@ class Judgment:
     scores: list[Score]
     overall_score: float
     created_at: str
-    prompt_version: str | None = None
+    exposure: str = "V1"
+    basis: str = "score"
+    granularity: str = "all"
+    characteristic_id: str | None = None
     score_scale: tuple[int, int] | None = None
