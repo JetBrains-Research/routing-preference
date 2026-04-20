@@ -71,7 +71,10 @@ def cmd_judge(args) -> None:
         folder = args.solutions_dir / folder_name
         try:
             with open(folder / "issue.json", encoding="utf-8") as f:
-                issue = Issue(**json.load(f))
+                issue_data = json.load(f)
+            if "id" in issue_data and "issue_id" not in issue_data:
+                issue_data["issue_id"] = issue_data.pop("id")
+            issue = Issue(**issue_data)
             with open(folder / "solution.json", encoding="utf-8") as f:
                 solution = Solution(**json.load(f))
 
