@@ -24,7 +24,7 @@ class Judgment:
     overall_score: float
     created_at: str
     exposure: str = "V1"
-    basis: str = "score"
+    basis: str = "scoring"
     granularity: str = "all"
     characteristic_id: str | None = None
     score_scale: tuple[int, int] | None = None

@@ -86,7 +86,7 @@ class SolutionGenerator:
         issue: Issue,
         model: str,
         timeout: int = DEFAULT_TIMEOUT,
-    ) -> Solution:
+    ) -> tuple[Solution, list[str]]:
         """Generate a solution
 
         Args:
@@ -118,10 +118,12 @@ class SolutionGenerator:
             prompt = self._build_prompt(issue)
 
             start = datetime.now()
-            trajectory, diff = self._run_agent(workspace, model, prompt, timeout)
+            trajectory, diff, exposed_files = self._run_agent(
+                workspace, model, prompt, timeout
+            )
             duration_ms = int((datetime.now() - start).total_seconds() * 1000)
 
-            return Solution(
+            solution = Solution(
                 issue_id=issue.issue_id,
                 model=model,
                 provider=provider,
@@ -130,6 +132,7 @@ class SolutionGenerator:
                 duration_ms=duration_ms,
                 created_at=datetime.now().isoformat(),
             )
+            return solution, exposed_files
         finally:
             if workspace.exists():
                 self._remove_workspace(workspace)
@@ -219,18 +222,8 @@ class SolutionGenerator:
         model_name: str,
         prompt: str,
         timeout: int,
-    ) -> tuple[dict, str]:
-        """Run mini-swe-agent and return (trajectory, diff).
-
-        Args:
-            workspace: path to the repository
-            model_name: name in LiteLLM format
-            prompt: the task prompt
-            timeout: in seconds for each command
-
-        Returns:
-            Tuple of (trajectory dict, git diff).
-        """
+    ) -> tuple[dict, str, list[str]]:
+        """Run mini-swe-agent and return (trajectory, diff, exposed_files)."""
         base_config = get_config_from_spec("default")
 
         if self.environment_type == "docker":
@@ -286,6 +279,7 @@ class SolutionGenerator:
 
         agent.run(prompt)
         trajectory = agent.serialize()
+        exposed_files = list(getattr(env, "exposed_files", []))
 
         try:
             diff_result = subprocess.run(
@@ -299,4 +293,4 @@ class SolutionGenerator:
         except subprocess.CalledProcessError as e:
             diff = f"git diff failed (rc={e.returncode}): {e.stderr}"
 
-        return trajectory, diff
+        return trajectory, diff, exposed_files

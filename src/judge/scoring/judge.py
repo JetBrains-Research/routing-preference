@@ -18,7 +18,7 @@ class Judge:
         if exposure == "V1":
             self.scorer = V1Scorer(model=model)
         else:
-            self.scorer = V2Scorer(model=model, prompt_version=exposure)
+            self.scorer = V2Scorer(model=model, exposure=exposure)
 
     def judge(
         self,
@@ -46,7 +46,7 @@ class Judge:
             overall_score=round(overall, 2),
             created_at=datetime.now().isoformat(),
             exposure=self.exposure,
-            basis="score",
+            basis="scoring",
             granularity="all",
             characteristic_id=None,
             score_scale=(1, 5),
@@ -79,7 +79,7 @@ class Judge:
             overall_score=float(score.value),
             created_at=datetime.now().isoformat(),
             exposure=self.exposure,
-            basis="score",
+            basis="scoring",
             granularity="single",
             characteristic_id=characteristic_id,
             score_scale=(1, 5),

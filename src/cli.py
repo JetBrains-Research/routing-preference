@@ -37,8 +37,9 @@ def cmd_judge(args) -> None:
     from .models import Issue, Solution
     from .judge import Judge, JudgmentStorage
     from .judge.source_files import extract_changed_files, fetch_source_files
+    from .judge.source_files import load_exposed_files
 
-    if args.basis == "rank":
+    if args.basis == "ranking":
         raise NotImplementedError("Ranking is not implemented yet")
 
     if args.granularity == "single" and not args.characteristic:
@@ -84,7 +85,10 @@ def cmd_judge(args) -> None:
                     raise ValueError(
                         f"V2 scoring requires base_commit on issue {issue.issue_id}"
                     )
-                paths = extract_changed_files(solution.diff)
+                if args.exposure == "V2.0":
+                    paths = extract_changed_files(solution.diff)
+                else:
+                    paths = load_exposed_files(folder)
                 source_files = fetch_source_files(
                     issue.repo, issue.base_commit, paths
                 )
@@ -188,9 +192,9 @@ def main() -> None:
     )
     judge_parser.add_argument(
         "--basis",
-        choices=["score", "rank"],
-        default="score",
-        help="Scoring basis: score or rank (rank not yet implemented)",
+        choices=["scoring", "ranking"],
+        default="scoring",
+        help="Judgment basis: scoring or ranking (ranking not yet implemented)",
     )
     judge_parser.add_argument(
         "--granularity",

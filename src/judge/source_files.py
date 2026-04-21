@@ -1,9 +1,23 @@
 """Fetch source files from GitHub for V2 scoring."""
 
+import json
 import os
 import re
+from pathlib import Path
 
 import requests
+
+
+def load_exposed_files(solution_folder: Path) -> list[str]:
+    """Load the list of files exposed to the agent during solution generation."""
+    path = solution_folder / "exposed_files.json"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"exposed_files.json not found in {solution_folder}. "
+            "Was this solution generated with the patched mini-swe-agent?"
+        )
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def extract_changed_files(diff: str) -> list[str]:
