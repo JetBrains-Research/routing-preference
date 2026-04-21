@@ -1,27 +1,18 @@
 {
-    "prompts": {
-        "single": {
-            "V1": "./prompts/single/V1.md",
-            "V2.0": "./prompts/single/V2.0.md",
-            "V2.1": "./prompts/single/V2.1.md"
+    "characteristics": ["intent", "correctness", "scope", "quality"],
+    "exposure_context_version": {
+        "V1": "V1",
+        "V2.0": "V2",
+        "V2.1": "V2"
+    },
+    "available_prompts": {
+        "scoring": {
+            "all": ["V1", "V2.0", "V2.1"],
+            "single": ["V1", "V2.0", "V2.1"]
         },
-        "batch": {
-            "V1": "./prompts/batch/V1.md"
-        },
-        "context": {
-            "V1": "./context/V1.md",
-            "V2": "./context/V2.md"
+        "ranking": {
+            "all": ["V1", "V2.0", "V2.1"],
+            "single": ["V1", "V2.0", "V2.1"]
         }
-    },
-    "characteristics": {
-        "intent": "./characteristics/intent/",
-        "correctness": "./characteristics/correctness/",
-        "scope": "./characteristics/scope/",
-        "quality": "./characteristics/quality/"
-    },
-    "defaults": {
-        "single": "V2.1",
-        "batch": "V1",
-        "context": "V1"
     }
 }
