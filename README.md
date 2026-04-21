@@ -7,9 +7,11 @@ Research project studying what characteristics users value in AI-generated code 
 ```bash
 git clone --recurse-submodules https://github.com/JetBrains-Research/routing-preference.git
 cd routing-preference
-make setup
+make setup   # also applies patches/track-exposed-files.patch to mini-swe-agent
 cp .env.example .env  # add your API keys
 ```
+
+The setup step applies `patches/track-exposed-files.patch` to the `mini-swe-agent` submodule so that file exposures (what the agent read during execution) are recorded alongside each generated solution. V2.1 judge scoring relies on this.
 
 ## Usage
 
