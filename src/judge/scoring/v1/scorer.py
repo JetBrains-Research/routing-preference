@@ -18,35 +18,41 @@ class Scorer:
         self.prompt_loader = PromptLoader(characteristic_loader=self.char_loader)
 
     def score_all(self, issue: Issue, solution: Solution) -> list[Score]:
-        """Score all characteristics in a single LLM call (batch)."""
-        prompt = self._build_batch_prompt(issue, solution)
+        """Score all characteristics in a single LLM call."""
+        prompt = self._build_all_prompt(issue, solution)
         response = self._call_llm(prompt)
-        return self._parse_batch_response(response)
+        return self._parse_all_response(response)
 
-    def score_single(self, characteristic_id: str, issue: Issue, solution: Solution) -> Score:
+    def score_single(
+        self, characteristic_id: str, issue: Issue, solution: Solution
+    ) -> Score:
         """Score a single characteristic."""
         prompt = self._build_single_prompt(characteristic_id, issue, solution)
         response = self._call_llm(prompt)
         return self._parse_single_response(response, characteristic_id)
 
     def _build_context(self, issue: Issue, solution: Solution) -> str:
-        context = self.prompt_loader.load_context(version="V1")
+        context = self.prompt_loader.load_context(basis="scoring", exposure="V1")
         context = context.replace("<ISSUE_TITLE>", issue.title)
         context = context.replace("<ISSUE_BODY>", issue.body)
         context = context.replace("<SOLUTION_DIFF>", solution.diff)
         return context
 
-    def _build_batch_prompt(self, issue: Issue, solution: Solution) -> str:
-        template = self.prompt_loader.load_batch_prompt(
+    def _build_all_prompt(self, issue: Issue, solution: Solution) -> str:
+        template = self.prompt_loader.load_all_prompt(
+            basis="scoring",
+            exposure="V1",
             characteristic_ids=CHARACTERISTIC_ORDER,
-            version="V1",
         )
         return template + "\n\n" + self._build_context(issue, solution)
 
-    def _build_single_prompt(self, characteristic_id: str, issue: Issue, solution: Solution) -> str:
+    def _build_single_prompt(
+        self, characteristic_id: str, issue: Issue, solution: Solution
+    ) -> str:
         template = self.prompt_loader.load_single_prompt(
+            basis="scoring",
+            exposure="V1",
             characteristic_id=characteristic_id,
-            version="V1",
         )
         return template + "\n\n" + self._build_context(issue, solution)
 
@@ -76,7 +82,7 @@ class Scorer:
             reasoning=reasoning,
         )
 
-    def _parse_batch_response(self, response: str) -> list[Score]:
+    def _parse_all_response(self, response: str) -> list[Score]:
         data = json.loads(response)
         characteristics = data.get("characteristics", {})
         scores = []
@@ -97,13 +103,17 @@ class Scorer:
             reasoning = score_data.get("reasoning", "")
 
             if not isinstance(score_value, int) or not 1 <= score_value <= 5:
-                raise ValueError(f"Score for {char_name} must be 1-5, got: {score_value}")
+                raise ValueError(
+                    f"Score for {char_name} must be 1-5, got: {score_value}"
+                )
 
-            scores.append(Score(
-                characteristic_id=char_id,
-                value=score_value,
-                reasoning=reasoning,
-            ))
+            scores.append(
+                Score(
+                    characteristic_id=char_id,
+                    value=score_value,
+                    reasoning=reasoning,
+                )
+            )
 
         if len(scores) != len(CHARACTERISTIC_ORDER):
             found_ids = {s.characteristic_id for s in scores}

@@ -23,12 +23,18 @@ class SolutionStorage:
         self.base_path = base_path
         self.base_path.mkdir(parents=True, exist_ok=True)
 
-    def save(self, solution: Solution, issue: Issue) -> Path:
+    def save(
+        self,
+        solution: Solution,
+        issue: Issue,
+        exposed_files: list[str] | None = None,
+    ) -> Path:
         """
         Creates:
             issue.json
             solution.json - Trajectory
             patch.diff - Git diff of the solution
+            exposed_files.json - Files the agent read during execution
         """
         folder_name = self._make_folder_name(solution)
         folder_path = self.base_path / folder_name
@@ -47,6 +53,12 @@ class SolutionStorage:
         if solution.diff:
             diff_path = folder_path / "patch.diff"
             self._atomic_write(diff_path, solution.diff)
+
+        exposed_path = folder_path / "exposed_files.json"
+        self._atomic_write(
+            exposed_path,
+            json.dumps(exposed_files or [], indent=2, ensure_ascii=False),
+        )
 
         return folder_path
 
