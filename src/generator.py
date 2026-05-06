@@ -7,9 +7,10 @@ import re
 import shutil
 import stat
 import subprocess
+import time
+import uuid
 from datetime import datetime
 from pathlib import Path
-import uuid
 
 from minisweagent.agents import get_agent
 from minisweagent.config import get_config_from_spec
@@ -18,6 +19,7 @@ from minisweagent.models import get_model
 from minisweagent.utils.serialize import recursive_merge
 
 from .models import Issue, Solution
+from .objective import compute_objective_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -117,11 +119,16 @@ class SolutionGenerator:
                 self._checkout_commit(workspace, issue.base_commit, timeout=timeout)
             prompt = self._build_prompt(issue)
 
-            start = datetime.now()
+            start = time.monotonic()
             trajectory, diff, exposed_files = self._run_agent(
                 workspace, model, prompt, timeout
             )
-            duration_ms = int((datetime.now() - start).total_seconds() * 1000)
+            completion_time_seconds = time.monotonic() - start
+            duration_ms = int(completion_time_seconds * 1000)
+            objective_metrics = compute_objective_metrics(
+                trajectory,
+                completion_time_seconds,
+            )
 
             solution = Solution(
                 issue_id=issue.issue_id,
@@ -131,6 +138,7 @@ class SolutionGenerator:
                 trajectory=trajectory,
                 duration_ms=duration_ms,
                 created_at=datetime.now().isoformat(),
+                objective_metrics=objective_metrics,
             )
             return solution, exposed_files
         finally:

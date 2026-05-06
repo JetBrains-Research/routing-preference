@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass, field
 
+from .objective import ObjectiveMetrics
+
 
 @dataclass
 class Issue:
@@ -40,3 +42,4 @@ class Solution:
     trajectory: dict
     duration_ms: int
     created_at: str
+    objective_metrics: ObjectiveMetrics | None = None
