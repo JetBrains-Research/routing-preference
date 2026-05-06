@@ -29,9 +29,18 @@ The broader goal is **Model Routing** - not shifting all usage to cheaper models
 - Challenge: No single provider has all SOTA models
 - **OpenRouter caution**: Suspiciously cheaper costs - may use quantization affecting accuracy
 
+### Solution Characteristics
+
+Score each solution on **6 characteristics**: 4 subjective characteristics using dedicated LLM judges, plus 2 objective characteristics measured from execution. See [OBJECTIVE.md](OBJECTIVE.md) for objective characteristic definitions.
+
+| Type | Characteristics |
+|------|-----------------|
+| Subjective | Intent Understanding, Functional Correctness, Scope Adherence, Code Quality |
+| Objective | Completion Time, Step Count |
+
 ### LLM as a Judge
 
-Score each solution on **7 characteristics** using dedicated judges (one judge per characteristic).
+The subjective characteristics are scored by LLM judges. Objective characteristics are measured by code during solution generation and do not use judge prompts.
 
 Purpose:
 - Ensure fair comparisons by selecting solution pairs with **similar overall quality but different characteristic sub-scores**
