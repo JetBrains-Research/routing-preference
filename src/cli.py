@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 DEFAULT_SOLUTIONS_DIR = PROJECT_ROOT / "data" / "solutions"
 DEFAULT_RANKINGS_DIR = PROJECT_ROOT / "data" / "rankings"
+DEFAULT_SELECTIONS_DIR = PROJECT_ROOT / "data" / "selections"
 
 CHARACTERISTICS = ["intent", "correctness", "scope", "quality"]
 N_RANKING_SOLUTIONS = 7
@@ -185,7 +186,10 @@ def _cmd_judge_ranking(args) -> None:
         args.granularity,
         args.characteristic,
     ):
-        logger.info("Ranking already exists for group %s; use --force to overwrite", args.group)
+        logger.info(
+            "Ranking already exists for group %s; use --force to overwrite",
+            args.group,
+        )
         return
 
     variant = f"{args.exposure}_{args.basis}_{args.characteristic or 'all'}"
@@ -218,6 +222,56 @@ def _cmd_judge_ranking(args) -> None:
             for r in sorted(cr.rankings, key=lambda r: r.rank)
         )
         logger.info("  %s: %s", cr.characteristic_id, order)
+
+
+def cmd_select(args) -> None:
+    """Select answer pairs for survey comparison."""
+    from .selection import SelectionStorage, select_pair_for_issue
+
+    issue_ids = (
+        [args.issue]
+        if args.issue
+        else _list_solution_issue_ids(args.solutions_dir)
+    )
+    storage = SelectionStorage(args.output)
+
+    logger.info("Selecting answer pairs for %d issues", len(issue_ids))
+    logger.info("Scoring exposure: %s", args.exposure)
+
+    for issue_id in issue_ids:
+        try:
+            selected = select_pair_for_issue(
+                args.solutions_dir,
+                issue_id,
+                exposure=args.exposure,
+                expected_solutions=args.expected_solutions,
+                max_average_gap=args.max_average_gap,
+            )
+            path = storage.save(selected)
+            logger.info(
+                "  %s: %s vs %s -> %s",
+                issue_id,
+                selected.solution_a,
+                selected.solution_b,
+                path,
+            )
+        except Exception as e:
+            logger.error("  %s: FAILED - %s", issue_id, e)
+
+
+def _list_solution_issue_ids(solutions_dir: Path) -> list[str]:
+    issue_ids = set()
+    for folder in sorted(solutions_dir.iterdir()):
+        if not folder.is_dir() or not (folder / "solution.json").exists():
+            continue
+        try:
+            with open(folder / "solution.json", encoding="utf-8") as f:
+                data = json.load(f)
+            if issue_id := data.get("issue_id"):
+                issue_ids.add(issue_id)
+        except Exception as e:
+            logger.warning("Skipping %s while listing issue ids: %s", folder.name, e)
+    return sorted(issue_ids)
 
 
 def main() -> None:
@@ -296,7 +350,10 @@ def main() -> None:
     judge_parser.add_argument(
         "--solutions",
         type=str,
-        help=f"Comma-separated list of {N_RANKING_SOLUTIONS} solution folders to rank (ranking only)",
+        help=(
+            f"Comma-separated list of {N_RANKING_SOLUTIONS} solution folders "
+            "to rank (ranking only)"
+        ),
     )
     judge_parser.add_argument(
         "--group",
@@ -338,12 +395,66 @@ def main() -> None:
     )
     judge_parser.set_defaults(func=cmd_judge)
 
+    # --- select ---
+    select_parser = subparsers.add_parser(
+        "select",
+        help="Select answer pairs for the survey",
+    )
+    select_parser.add_argument(
+        "--solutions-dir", "-s",
+        type=Path,
+        default=DEFAULT_SOLUTIONS_DIR,
+        help=f"Directory containing solutions (default: {DEFAULT_SOLUTIONS_DIR})",
+    )
+    select_parser.add_argument(
+        "--output", "-o",
+        type=Path,
+        default=DEFAULT_SELECTIONS_DIR,
+        help=f"Output directory for selected pairs (default: {DEFAULT_SELECTIONS_DIR})",
+    )
+    select_parser.add_argument(
+        "--issue",
+        help="Select a pair for one issue id; defaults to all issues in solutions-dir",
+    )
+    select_parser.add_argument(
+        "--exposure",
+        default="V1",
+        help="Scoring exposure/version to use, matching judgment filenames",
+    )
+    select_parser.add_argument(
+        "--expected-solutions",
+        type=int,
+        default=7,
+        help="Required number of scored solutions per issue (default: 7)",
+    )
+    select_parser.add_argument(
+        "--max-average-gap",
+        type=float,
+        default=0.75,
+        help=(
+            "Maximum subjective-average gap for preferred pairs; if no pair "
+            "matches, selection falls back to all pairs (default: 0.75)"
+        ),
+    )
+    select_parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Enable verbose logging",
+    )
+    select_parser.set_defaults(func=cmd_select)
+
     args = parser.parse_args()
 
     if hasattr(args, "verbose") and args.verbose:
-        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s %(levelname)s %(message)s",
+        )
     else:
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s %(levelname)s %(message)s",
+        )
 
     args.func(args)
     logger.info("Done!")
