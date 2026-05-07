@@ -1,4 +1,4 @@
-.PHONY: help setup generate clean clean-all
+.PHONY: help setup patch-mini-swe generate clean clean-all
 
 help:
 	@echo "Solution Generation Pipeline"
@@ -16,7 +16,7 @@ help:
 	@echo "  make clean     - Remove generated data and caches"
 	@echo "  make clean-all - Also remove virtual environment"
 
-setup:
+setup: patch-mini-swe
 	@echo "Creating virtual environment and installing dependencies..."
 	uv sync
 	@echo ""
@@ -28,6 +28,15 @@ setup:
 	@echo "Next steps:"
 	@echo "  1. Copy .env.example to .env and add your API keys"
 	@echo "  2. Run 'make generate DATASET=org/routing-issues'"
+
+patch-mini-swe:
+	@echo "Applying mini-swe-agent patches..."
+	@if git -C external/mini-swe-agent apply --check $(CURDIR)/patches/track-exposed-files.patch 2>/dev/null; then \
+		git -C external/mini-swe-agent apply $(CURDIR)/patches/track-exposed-files.patch; \
+		echo "  Applied: track-exposed-files.patch"; \
+	else \
+		echo "  Already applied (or conflict): track-exposed-files.patch"; \
+	fi
 
 DATASET ?=
 MODEL ?= openai/gpt-4o-mini

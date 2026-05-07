@@ -9,7 +9,7 @@ The solution generation pipeline and LLM as a Judge system are implemented.
 Test the end-to-end flow with minimal data before scaling up.
 
 - [x] Generate solutions with 2-3 models
-- [x] Implement LLM as a Judge (7 characteristics)
+- [x] Implement LLM as a Judge (4 subjective characteristics)
 - [x] Verify the flow works: issue → solution → score
 - [x] Add comparative ranking mode for multi-solution comparison
 
@@ -35,14 +35,15 @@ Generate solutions for all issues using all 7 models.
 
 Initial solutions generated with gpt-4o-mini and gpt-4o for testing.
 
-## Phase 3: LLM as a Judge
+## Phase 3: Characteristics
 
-Implement characteristic scoring for solutions.
+Implement subjective judging and objective metric extraction for solutions.
 
-- [x] Define the 7 characteristics to measure
-- [x] Create judge prompts (one per characteristic)
+- [x] Define the 4 subjective and 2 objective characteristics to measure
+- [x] Create judge prompts for subjective characteristics
 - [x] Implement scoring pipeline
 - [x] Implement comparative ranking pipeline
+- [x] Implement objective metric extraction
 - [ ] Validate: Manual review of sub-sample to gauge alignment
 - [ ] Score all solutions
 

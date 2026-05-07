@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 DEFAULT_SOLUTIONS_DIR = PROJECT_ROOT / "data" / "solutions"
+DEFAULT_RANKINGS_DIR = PROJECT_ROOT / "data" / "rankings"
+
+CHARACTERISTICS = ["intent", "correctness", "scope", "quality"]
+N_RANKING_SOLUTIONS = 7
 
 
 def cmd_generate(args) -> None:
@@ -30,13 +34,60 @@ def cmd_generate(args) -> None:
     pipeline.run(dataset=dataset, models=models, limit=args.limit)
 
 
-def cmd_judge(args) -> None:
-    """Judge solutions."""
-    from .models import Issue, Solution
-    from .judge import Judge, JudgmentStorage
+def _load_issue(folder: Path):
+    from .models import Issue
 
-    judge = Judge(model=args.model, version=args.version)
-    storage = JudgmentStorage(args.solutions_dir)
+    with open(folder / "issue.json", encoding="utf-8") as f:
+        data = json.load(f)
+    if "id" in data and "issue_id" not in data:
+        data["issue_id"] = data.pop("id")
+    return Issue(**data)
+
+
+def _load_solution(folder: Path):
+    from .models import Solution
+
+    with open(folder / "solution.json", encoding="utf-8") as f:
+        return Solution(**json.load(f))
+
+
+def _gather_source_files(exposure: str, folder: Path, issue, solution):
+    """Gather source files for V2 exposures. Returns None for V1."""
+    from .judge.source_files import (
+        extract_changed_files,
+        fetch_source_files,
+        load_exposed_files,
+    )
+
+    if not exposure.startswith("V2"):
+        return None
+    if not issue.base_commit:
+        raise ValueError(
+            f"V2 requires base_commit on issue {issue.issue_id}"
+        )
+    if exposure == "V2.0":
+        paths = extract_changed_files(solution.diff)
+    else:
+        paths = load_exposed_files(folder)
+    return fetch_source_files(issue.repo, issue.base_commit, paths)
+
+
+def cmd_judge(args) -> None:
+    """Judge solutions — scoring or ranking based on --basis."""
+    if args.granularity == "single" and not args.characteristic:
+        raise ValueError("--characteristic is required when --granularity single")
+
+    if args.basis == "scoring":
+        _cmd_judge_scoring(args)
+    else:
+        _cmd_judge_ranking(args)
+
+
+def _cmd_judge_scoring(args) -> None:
+    from .judge import Judge, ScoringStorage
+
+    judge = Judge(model=args.model, exposure=args.exposure)
+    storage = ScoringStorage(args.solutions_dir)
 
     if args.solution:
         folders = [args.solution]
@@ -47,24 +98,126 @@ def cmd_judge(args) -> None:
             if f.is_dir() and (f / "solution.json").exists()
         ]
     else:
-        folders = storage.list_unjudged()
+        folders = storage.list_unjudged(
+            exposure=args.exposure,
+            basis=args.basis,
+            granularity=args.granularity,
+            characteristic_id=args.characteristic,
+        )
 
-    logger.info("Judging %d solutions in: %s", len(folders), args.solutions_dir)
-    logger.info("Model: %s, Version: %s", args.model, args.version)
+    variant = f"{args.exposure}_{args.basis}_{args.characteristic or 'all'}"
+    logger.info("Scoring %d solutions in: %s", len(folders), args.solutions_dir)
+    logger.info("Model: %s, Variant: %s", args.model, variant)
 
     for folder_name in folders:
         folder = args.solutions_dir / folder_name
         try:
-            with open(folder / "issue.json", encoding="utf-8") as f:
-                issue = Issue(**json.load(f))
-            with open(folder / "solution.json", encoding="utf-8") as f:
-                solution = Solution(**json.load(f))
+            issue = _load_issue(folder)
+            solution = _load_solution(folder)
+            source_files = _gather_source_files(args.exposure, folder, issue, solution)
 
-            judgment = judge.judge(issue, solution, folder_name)
+            if args.granularity == "single":
+                judgment = judge.judge_single(
+                    args.characteristic,
+                    issue,
+                    solution,
+                    folder_name,
+                    source_files=source_files,
+                )
+            else:
+                judgment = judge.judge(
+                    issue, solution, folder_name, source_files=source_files
+                )
+
             storage.save(judgment)
             logger.info("  %s: %.2f", folder_name, judgment.overall_score)
         except Exception as e:
             logger.error("  %s: FAILED - %s", folder_name, e)
+
+
+def _cmd_judge_ranking(args) -> None:
+    from .judge import Judge, RankingStorage
+
+    if not args.solutions:
+        raise ValueError("--solutions is required when --basis ranking")
+    if not args.group:
+        raise ValueError("--group is required when --basis ranking")
+
+    folder_names = [s.strip() for s in args.solutions.split(",") if s.strip()]
+    if len(folder_names) != N_RANKING_SOLUTIONS:
+        raise ValueError(
+            f"Ranking requires exactly {N_RANKING_SOLUTIONS} solutions, "
+            f"got {len(folder_names)}"
+        )
+    if len(set(folder_names)) != N_RANKING_SOLUTIONS:
+        raise ValueError("--solutions must not contain duplicates")
+
+    issues = []
+    solutions = []
+    source_files_per_solution = []
+    for folder_name in folder_names:
+        folder = args.solutions_dir / folder_name
+        if not folder.exists():
+            raise ValueError(f"Solution folder not found: {folder}")
+        issue = _load_issue(folder)
+        solution = _load_solution(folder)
+        issues.append(issue)
+        solutions.append(solution)
+        if args.exposure.startswith("V2"):
+            source_files_per_solution.append(
+                _gather_source_files(args.exposure, folder, issue, solution) or {}
+            )
+
+    issue_ids = {i.issue_id for i in issues}
+    if len(issue_ids) != 1:
+        raise ValueError(
+            f"All ranking solutions must be for the same issue, found: {issue_ids}"
+        )
+    issue = issues[0]
+
+    judge = Judge(model=args.model, exposure=args.exposure)
+    storage = RankingStorage(args.rankings_dir)
+
+    if not args.force and storage.has_ranking(
+        args.group,
+        args.exposure,
+        args.basis,
+        args.granularity,
+        args.characteristic,
+    ):
+        logger.info("Ranking already exists for group %s; use --force to overwrite", args.group)
+        return
+
+    variant = f"{args.exposure}_{args.basis}_{args.characteristic or 'all'}"
+    logger.info("Ranking %d solutions for group: %s", len(folder_names), args.group)
+    logger.info("Model: %s, Variant: %s", args.model, variant)
+
+    if args.granularity == "single":
+        judgment = judge.rank_single(
+            args.characteristic,
+            issue,
+            solutions,
+            folder_names,
+            args.group,
+            source_files_per_solution=source_files_per_solution or None,
+        )
+    else:
+        judgment = judge.rank(
+            issue,
+            solutions,
+            folder_names,
+            args.group,
+            source_files_per_solution=source_files_per_solution or None,
+        )
+
+    path = storage.save(judgment)
+    logger.info("Saved ranking to: %s", path)
+    for cr in judgment.rankings:
+        order = " > ".join(
+            f"{r.solution_id}(#{r.rank})"
+            for r in sorted(cr.rankings, key=lambda r: r.rank)
+        )
+        logger.info("  %s: %s", cr.characteristic_id, order)
 
 
 def main() -> None:
@@ -125,6 +278,12 @@ def main() -> None:
         help=f"Directory containing solutions (default: {DEFAULT_SOLUTIONS_DIR})",
     )
     judge_parser.add_argument(
+        "--rankings-dir",
+        type=Path,
+        default=DEFAULT_RANKINGS_DIR,
+        help=f"Directory for ranking results (default: {DEFAULT_RANKINGS_DIR})",
+    )
+    judge_parser.add_argument(
         "--model", "-m",
         default="openai/gpt-4o",
         help="Model to use for judging (default: openai/gpt-4o)",
@@ -132,18 +291,45 @@ def main() -> None:
     judge_parser.add_argument(
         "--solution",
         type=str,
-        help="Score a specific solution folder",
+        help="Score a specific solution folder (scoring only)",
+    )
+    judge_parser.add_argument(
+        "--solutions",
+        type=str,
+        help=f"Comma-separated list of {N_RANKING_SOLUTIONS} solution folders to rank (ranking only)",
+    )
+    judge_parser.add_argument(
+        "--group",
+        type=str,
+        help="Group identifier for a ranking (required when --basis ranking)",
     )
     judge_parser.add_argument(
         "--force", "-f",
         action="store_true",
-        help="Re-judge solutions that already have judgments",
+        help="Re-run even if this judgment variant already exists",
     )
     judge_parser.add_argument(
-        "--version",
+        "--exposure",
         choices=["V1", "V2.0", "V2.1"],
         default="V1",
-        help="Scoring version: V1 (issue+diff) or V2.x (issue+diff+sources)",
+        help="Code exposure: V1 (none), V2.0 (patch-affected), V2.1 (agent-explored)",
+    )
+    judge_parser.add_argument(
+        "--basis",
+        choices=["scoring", "ranking"],
+        default="scoring",
+        help="Judgment basis: scoring (per solution) or ranking (across N solutions)",
+    )
+    judge_parser.add_argument(
+        "--granularity",
+        choices=["all", "single"],
+        default="all",
+        help="Judge all characteristics at once or one at a time",
+    )
+    judge_parser.add_argument(
+        "--characteristic",
+        choices=CHARACTERISTICS,
+        help="Characteristic to judge (required when --granularity single)",
     )
     judge_parser.add_argument(
         "--verbose", "-v",
