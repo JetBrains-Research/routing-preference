@@ -15,13 +15,16 @@ class LoadedCharacteristic:
     name: str
     short_description: str
     long_description: str
-    basis: str
+    scoring_basis: str
     scoring_steps_v1: str
     scoring_steps_v2: str
+    ranking_basis: str
+    ranking_steps_v1: str
+    ranking_steps_v2: str
 
 
 class CharacteristicLoader:
-    """Loads characteristics from docs/judge/characteristics/."""
+    """Loads characteristics from docs/judge/characteristics/{id}/."""
 
     DEFAULT_PATH = Path(__file__).parent.parent.parent.parent / "docs" / "judge"
 
@@ -40,32 +43,16 @@ class CharacteristicLoader:
                 self._config = {}
         return self._config
 
-    def _resolve_path(self, relative_path: str) -> Path:
-        """Resolve a relative path from prompts.json."""
-        if relative_path.startswith("./"):
-            return self.judge_dir / relative_path[2:]
-        return Path(relative_path)
-
     def list_characteristics(self) -> list[str]:
         """List available characteristic IDs."""
-        config = self._load_config()
-        if "characteristics" in config:
-            return list(config["characteristics"].keys())
-        return []
+        return list(self._load_config().get("characteristics", []))
 
     def load(self, characteristic_id: str) -> LoadedCharacteristic:
         """Load a single characteristic by ID."""
         if characteristic_id in self._cache:
             return self._cache[characteristic_id]
 
-        config = self._load_config()
-        char_path = config.get("characteristics", {}).get(characteristic_id)
-
-        if char_path:
-            char_dir = self._resolve_path(char_path)
-        else:
-            char_dir = self.judge_dir / "characteristics" / characteristic_id
-
+        char_dir = self.judge_dir / "characteristics" / characteristic_id
         if not char_dir.exists():
             raise ValueError(f"Characteristic not found: {characteristic_id}")
 
@@ -74,9 +61,12 @@ class CharacteristicLoader:
             name=self._load_file(char_dir / "NAME.md"),
             short_description=self._load_file(char_dir / "SHORT.md"),
             long_description=self._load_file(char_dir / "LONG.md"),
-            basis=self._load_file(char_dir / "BASIS.md"),
+            scoring_basis=self._load_file(char_dir / "SCORING_BASIS.md"),
             scoring_steps_v1=self._load_file(char_dir / "SCORING_STEPS_V1.md"),
             scoring_steps_v2=self._load_file(char_dir / "SCORING_STEPS_V2.md"),
+            ranking_basis=self._load_file(char_dir / "RANKING_BASIS.md"),
+            ranking_steps_v1=self._load_file(char_dir / "RANKING_STEPS_V1.md"),
+            ranking_steps_v2=self._load_file(char_dir / "RANKING_STEPS_V2.md"),
         )
 
         self._cache[characteristic_id] = char

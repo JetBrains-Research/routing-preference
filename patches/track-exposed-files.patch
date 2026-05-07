@@ -1,0 +1,155 @@
+diff --git a/src/minisweagent/environments/docker.py b/src/minisweagent/environments/docker.py
+index 42e65e35..c5b3c0bb 100644
+--- a/src/minisweagent/environments/docker.py
++++ b/src/minisweagent/environments/docker.py
+@@ -1,6 +1,7 @@
+ import logging
+ import os
+ import platform
++import re
+ import shlex
+ import subprocess
+ import uuid
+@@ -11,6 +12,35 @@ from pydantic import BaseModel
+ from minisweagent.exceptions import Submitted
+ from minisweagent.utils.serialize import recursive_merge
+ 
++_READ_COMMANDS = {"cat", "head", "tail", "less", "more", "sed", "awk", "grep", "view", "bat"}
++_PATTERN_COMMANDS = {"sed", "awk", "grep"}
++_PATH_RE = re.compile(r"^[a-zA-Z0-9_./\-]+$")
++
++
++def _extract_exposed_files(command: str) -> list[str]:
++    """Extract file paths from commands that expose file content to the agent."""
++    paths = []
++    for segment in re.split(r"(?:&&|\|\||;|\|)", command):
++        try:
++            tokens = shlex.split(segment.strip())
++        except ValueError:
++            continue
++        if not tokens:
++            continue
++        cmd_name = os.path.basename(tokens[0])
++        if cmd_name not in _READ_COMMANDS:
++            continue
++        positionals = [a for a in tokens[1:] if a and not a.startswith("-")]
++        if cmd_name in _PATTERN_COMMANDS and positionals:
++            positionals = positionals[1:]
++        for p in positionals:
++            if not _PATH_RE.match(p):
++                continue
++            if "/" not in p and "." not in p:
++                continue
++            paths.append(p)
++    return paths
++
+ 
+ class DockerEnvironmentConfig(BaseModel):
+     image: str
+@@ -56,6 +86,7 @@ class DockerEnvironment:
+         self.logger = logger or logging.getLogger("minisweagent.environment")
+         self.container_id: str | None = None
+         self.config = config_class(**kwargs)
++        self.exposed_files: list[str] = []
+         self._start_container()
+ 
+     def get_template_vars(self, **kwargs) -> dict[str, Any]:
+@@ -67,7 +98,8 @@ class DockerEnvironment:
+                 "config": {
+                     "environment": self.config.model_dump(mode="json"),
+                     "environment_type": f"{self.__class__.__module__}.{self.__class__.__name__}",
+-                }
++                },
++                "exposed_files": list(self.exposed_files),
+             }
+         }
+ 
+@@ -134,6 +166,10 @@ class DockerEnvironment:
+                 "exception_info": f"An error occurred while executing the command: {e}",
+                 "extra": {"exception_type": type(e).__name__, "exception": str(e)},
+             }
++        if output.get("returncode") == 0:
++            for path in _extract_exposed_files(command):
++                if path not in self.exposed_files:
++                    self.exposed_files.append(path)
+         self._check_finished(output)
+         return output
+ 
+diff --git a/src/minisweagent/environments/local.py b/src/minisweagent/environments/local.py
+index b22db383..9b227a02 100644
+--- a/src/minisweagent/environments/local.py
++++ b/src/minisweagent/environments/local.py
+@@ -1,5 +1,7 @@
+ import os
+ import platform
++import re
++import shlex
+ import subprocess
+ from typing import Any
+ 
+@@ -8,6 +10,37 @@ from pydantic import BaseModel
+ from minisweagent.exceptions import Submitted
+ from minisweagent.utils.serialize import recursive_merge
+ 
++_READ_COMMANDS = {"cat", "head", "tail", "less", "more", "sed", "awk", "grep", "view", "bat"}
++_PATTERN_COMMANDS = {"sed", "awk", "grep"}
++_PATH_RE = re.compile(r"^[a-zA-Z0-9_./\-]+$")
++
++
++def _extract_exposed_files(command: str, cwd: str = "") -> list[str]:
++    """Extract file paths from commands that expose file content to the agent."""
++    paths = []
++    for segment in re.split(r"(?:&&|\|\||;|\|)", command):
++        try:
++            tokens = shlex.split(segment.strip())
++        except ValueError:
++            continue
++        if not tokens:
++            continue
++        cmd_name = os.path.basename(tokens[0])
++        if cmd_name not in _READ_COMMANDS:
++            continue
++        positionals = [a for a in tokens[1:] if a and not a.startswith("-")]
++        if cmd_name in _PATTERN_COMMANDS and positionals:
++            positionals = positionals[1:]
++        for p in positionals:
++            if not _PATH_RE.match(p):
++                continue
++            if "/" not in p and "." not in p:
++                continue
++            if cwd and not os.path.exists(os.path.join(cwd, p)):
++                continue
++            paths.append(p)
++    return paths
++
+ 
+ class LocalEnvironmentConfig(BaseModel):
+     cwd: str = ""
+@@ -19,6 +52,7 @@ class LocalEnvironment:
+     def __init__(self, *, config_class: type = LocalEnvironmentConfig, **kwargs):
+         """This class executes bash commands directly on the local machine."""
+         self.config = config_class(**kwargs)
++        self.exposed_files: list[str] = []
+ 
+     def execute(self, action: dict, cwd: str = "", *, timeout: int | None = None) -> dict[str, Any]:
+         """Execute a command in the local environment and return the result as a dict."""
+@@ -49,6 +83,10 @@ class LocalEnvironment:
+                 "exception_info": f"An error occurred while executing the command: {e}",
+                 "extra": {"exception_type": type(e).__name__, "exception": str(e)},
+             }
++        if output.get("returncode") == 0:
++            for path in _extract_exposed_files(command, cwd):
++                if path not in self.exposed_files:
++                    self.exposed_files.append(path)
+         self._check_finished(output)
+         return output
+ 
+@@ -74,6 +112,7 @@ class LocalEnvironment:
+                 "config": {
+                     "environment": self.config.model_dump(mode="json"),
+                     "environment_type": f"{self.__class__.__module__}.{self.__class__.__name__}",
+-                }
++                },
++                "exposed_files": list(self.exposed_files),
+             }
+         }
