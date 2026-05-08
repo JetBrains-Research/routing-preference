@@ -17,18 +17,16 @@ Keep existing solution data backward compatible where possible. Existing `durati
 
 ## Data Model
 
-Add an objective metrics structure to the solution model.
+Store objective metrics as a separate artifact next to the generated solution.
 
 Recommended shape:
 
 ```json
 {
-  "objective_metrics": {
-    "completion_time_seconds": 4.95,
-    "step_count": 1,
-    "raw_action_count": 2,
-    "model_call_count": 2
-  }
+  "completion_time_seconds": 4.95,
+  "step_count": 1,
+  "raw_action_count": 2,
+  "model_call_count": 2
 }
 ```
 
@@ -57,7 +55,7 @@ Implementation steps:
 1. Switch timing from `datetime.now()` deltas to `time.monotonic()` for elapsed duration.
 2. Measure from immediately before `_run_agent()` starts until after `_run_agent()` returns.
 3. Ensure `_run_agent()` continues to include final `git diff` capture.
-4. Store seconds as a float in `objective_metrics.completion_time_seconds`.
+4. Store seconds as a float in `objective_metrics.json`.
 5. Continue storing integer `duration_ms` as derived compatibility data.
 
 ## Step Count
@@ -75,7 +73,7 @@ Implementation steps:
    echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT
    ```
 
-5. Store the filtered count as `objective_metrics.step_count`.
+5. Store the filtered count in `objective_metrics.json`.
 6. Use `trajectory["info"]["model_stats"]["api_calls"]` for `model_call_count` when present.
 
 Important interpretation:
@@ -111,25 +109,16 @@ Update:
 - `src/generator.py`
 - `src/storage.py` only if needed for serialization compatibility
 
-The generated `solution.json` should contain the new `objective_metrics` field.
+The generated solution run folder should contain a separate `objective_metrics.json` file.
 
 Example:
 
 ```json
 {
-  "issue_id": "Textualize__rich-4050",
-  "model": "openai/gpt-4o-mini",
-  "provider": "openai",
-  "diff": "...",
-  "trajectory": {},
-  "duration_ms": 4950,
-  "objective_metrics": {
-    "completion_time_seconds": 4.95,
-    "step_count": 1,
-    "raw_action_count": 2,
-    "model_call_count": 2
-  },
-  "created_at": "..."
+  "completion_time_seconds": 4.95,
+  "step_count": 1,
+  "raw_action_count": 2,
+  "model_call_count": 2
 }
 ```
 
@@ -150,7 +139,7 @@ Use the existing sample solution trajectory as a fixture or create minimal synth
 
 ## Migration / Backfill
 
-Existing solution folders do not have `objective_metrics`.
+Existing solution folders may not have `objective_metrics.json`.
 
 Backfill can be added later as a script:
 
@@ -165,6 +154,5 @@ Backfill limitation:
 
 ## Open Decisions
 
-1. Whether `objective_metrics` should eventually be stored in a separate file, such as `objective_metrics.json`, for easier partial recomputation.
-2. Whether to record component timings, such as model wait time and tool execution time, in the first implementation or a later iteration.
-3. Whether environment metadata should live inside `objective_metrics` or a broader solution `metadata` object.
+1. Whether to record component timings, such as model wait time and tool execution time, in the first implementation or a later iteration.
+2. Whether environment metadata should live inside `objective_metrics.json` or a broader solution `metadata` object.
