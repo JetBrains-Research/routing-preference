@@ -1,4 +1,4 @@
-"""Data models for selected answer pairs."""
+"""Data models for selected solution pairs."""
 
 from dataclasses import dataclass
 

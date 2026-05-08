@@ -61,6 +61,8 @@ Answer-pair selection outputs are stored per issue and selection source:
 data/selections/
   <issue_id>/
     <selection_source>__<judge_model_slug>__<exposure>_<all|characteristic>.json
+    candidates/
+      <selection_source>__<judge_model_slug>__<exposure>_<all|characteristic>.json
 ```
 
 Selection can be based on different scoring or ranking judge runs. The current
@@ -69,6 +71,34 @@ for ranking-based selection outputs too.
 
 Each selected solution is stored as a structured reference containing the
 `solution_id`, `model_slug`, `run_id`, and path relative to `data/solutions/`.
+
+The per-issue `candidates/` file stores all candidate pairs and their local
+metrics for the same selection source.
+
+Selection parameters are stored in:
+
+```text
+configs/selection.json
+```
+
+Global balanced selection also writes a run-level directory:
+
+```text
+data/selections/
+  runs/
+    <selection_run_id>/
+      config.json
+      summary.json
+      candidates/
+        <issue_id>.json
+      selected/
+        <issue_id>.json
+```
+
+Per-issue `candidates/` files contain all candidate pairs and their local
+metrics. Run-level `candidates/<issue_id>.json` contains the scored candidate
+pool used by the global selector. `summary.json` contains selected pairs across
+issues, model usage, quality-band usage, and the selection method.
 
 ## Issues
 
