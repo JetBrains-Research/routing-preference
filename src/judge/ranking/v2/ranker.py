@@ -1,7 +1,8 @@
 """V2 ranking - issue + diffs + per-solution source files.
 
-Supports exposures V2.0 (patch-affected files per solution) and V2.1
-(agent-explored files per solution). Each solution has its own source_files.
+Supports exposures
+    V2.0 (patch-affected files per solution) and
+    V2.1 (agent-explored files per solution).
 """
 
 import json

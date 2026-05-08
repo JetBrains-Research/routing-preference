@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Score:
-    """Score for a single characteristic (scoring basis)."""
+    """Score for a single characteristic."""
 
     characteristic_id: str
     value: int
@@ -51,8 +51,7 @@ class RankingJudgment:
     """Complete ranking judgment over a group of solutions.
 
     Spans multiple solutions, identified by their solution folder names.
-    For granularity="all", `rankings` contains one CharacteristicRanking per
-    characteristic.
+    For granularity="all", `rankings` contains one CharacteristicRanking per characteristic.
     For granularity="single", it contains exactly one, matching `characteristic_id`.
     """
 
