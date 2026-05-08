@@ -8,7 +8,6 @@ from ....models import Issue, Solution
 from ...loader import CharacteristicLoader, PromptLoader
 from ...models import CharacteristicRanking, Ranking
 
-CHARACTERISTIC_ORDER = ["intent", "correctness", "scope", "quality"]
 N_SOLUTIONS = 7
 
 
@@ -17,6 +16,7 @@ class Ranker:
         self.model = model
         self.char_loader = CharacteristicLoader()
         self.prompt_loader = PromptLoader(characteristic_loader=self.char_loader)
+        self.characteristic_order = self.char_loader.list_characteristics()
 
     def rank_all(
         self,
@@ -88,7 +88,7 @@ class Ranker:
         template = self.prompt_loader.load_all_prompt(
             basis="ranking",
             exposure="V1",
-            characteristic_ids=CHARACTERISTIC_ORDER,
+            characteristic_ids=self.characteristic_order,
         )
         return (
             template + "\n\n" + self._build_context(issue, solutions, solution_ids)
@@ -180,7 +180,7 @@ class Ranker:
         characteristics = data.get("characteristics", {})
 
         name_to_id = {}
-        for cid in CHARACTERISTIC_ORDER:
+        for cid in self.characteristic_order:
             char = self.char_loader.load(cid)
             name_to_id[char.name] = cid
 
@@ -190,7 +190,7 @@ class Ranker:
             char_id = name_to_id.get(char_name)
             if not char_id:
                 char_id = char_name.lower().replace(" ", "_")
-                if char_id not in CHARACTERISTIC_ORDER:
+                if char_id not in self.characteristic_order:
                     char_id = char_name
 
             rankings = self._parse_ranking_list(
@@ -200,9 +200,9 @@ class Ranker:
                 CharacteristicRanking(characteristic_id=char_id, rankings=rankings)
             )
 
-        if len(results) != len(CHARACTERISTIC_ORDER):
+        if len(results) != len(self.characteristic_order):
             found_ids = {r.characteristic_id for r in results}
-            missing = set(CHARACTERISTIC_ORDER) - found_ids
+            missing = set(self.characteristic_order) - found_ids
             raise ValueError(f"Missing characteristics in response: {missing}")
 
         return results

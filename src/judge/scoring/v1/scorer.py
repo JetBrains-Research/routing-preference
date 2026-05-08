@@ -8,14 +8,13 @@ from ....models import Issue, Solution
 from ...loader import CharacteristicLoader, PromptLoader
 from ...models import Score
 
-CHARACTERISTIC_ORDER = ["intent", "correctness", "scope", "quality"]
-
 
 class Scorer:
     def __init__(self, model: str = "openai/gpt-4o"):
         self.model = model
         self.char_loader = CharacteristicLoader()
         self.prompt_loader = PromptLoader(characteristic_loader=self.char_loader)
+        self.characteristic_order = self.char_loader.list_characteristics()
 
     def score_all(self, issue: Issue, solution: Solution) -> list[Score]:
         """Score all characteristics in a single LLM call."""
@@ -42,7 +41,7 @@ class Scorer:
         template = self.prompt_loader.load_all_prompt(
             basis="scoring",
             exposure="V1",
-            characteristic_ids=CHARACTERISTIC_ORDER,
+            characteristic_ids=self.characteristic_order,
         )
         return template + "\n\n" + self._build_context(issue, solution)
 
@@ -88,7 +87,7 @@ class Scorer:
         scores = []
 
         name_to_id = {}
-        for cid in CHARACTERISTIC_ORDER:
+        for cid in self.characteristic_order:
             char = self.char_loader.load(cid)
             name_to_id[char.name] = cid
 
@@ -96,7 +95,7 @@ class Scorer:
             char_id = name_to_id.get(char_name)
             if not char_id:
                 char_id = char_name.lower().replace(" ", "_")
-                if char_id not in CHARACTERISTIC_ORDER:
+                if char_id not in self.characteristic_order:
                     char_id = char_name
 
             score_value = score_data.get("score")
@@ -115,9 +114,9 @@ class Scorer:
                 )
             )
 
-        if len(scores) != len(CHARACTERISTIC_ORDER):
+        if len(scores) != len(self.characteristic_order):
             found_ids = {s.characteristic_id for s in scores}
-            missing = set(CHARACTERISTIC_ORDER) - found_ids
+            missing = set(self.characteristic_order) - found_ids
             raise ValueError(f"Missing characteristics in response: {missing}")
 
         return scores

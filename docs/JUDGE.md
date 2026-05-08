@@ -19,7 +19,8 @@ Additionally, **Comparative Ranking** can rank all solutions for an issue agains
 | **Scope** | Whether the solution stays within the boundaries of what the issue requested |
 | **Quality** | Readability, maintainability, documentation, and adherence to coding conventions |
 
-Characteristic definitions and scoring rubrics are loaded from `docs/judge/characteristics/`.
+Characteristic definitions and scoring rubrics are Markdown files registered in
+`docs/judge/prompts.json`.
 
 ## Usage
 
@@ -68,20 +69,24 @@ The judge sees only the diff, not the full agent trajectory.
 
 ## Prompt Templates
 
-Prompts are organized in `docs/judge/prompts/` by type:
+Prompts and judge document fragments are registered in `docs/judge/prompts.json`.
+The Markdown files stay under `docs/judge/` so they remain readable and easy to
+diff, but code should resolve them through the JSON registry rather than through
+hardcoded path conventions.
 
 ```
 docs/judge/
   prompts.json               # Configuration and version mappings
   prompts/
-    single/                  # One characteristic per call
-      V1.md
-      V2.0.md
-      V2.1.md
-    batch/                   # All characteristics in one call
-      V1.md
-    ranking/                 # Comparative ranking
-      V1.md
+    scoring/
+      all/
+      single/
+    ranking/
+      all/
+      single/
+  context/
+    scoring/
+    ranking/
   characteristics/
     intent/
     correctness/
@@ -92,13 +97,31 @@ docs/judge/
 Configuration in `prompts.json`:
 ```json
 {
-  "prompts": { "single": { "V1": "./prompts/single/V1.md", ... } },
-  "characteristics": { "intent": "./characteristics/intent/", ... },
-  "defaults": { "single": "V2.1", "batch": "V1", "ranking": "V1" }
+  "characteristics": ["intent", "correctness", "scope", "quality"],
+  "characteristic_paths": {
+    "intent": "./characteristics/intent"
+  },
+  "characteristic_files": {
+    "name": "NAME.md",
+    "scoring_basis": "SCORING_BASIS.md"
+  },
+  "prompts": {
+    "scoring": {
+      "all": {
+        "V1": "./prompts/scoring/all/V1.md"
+      }
+    }
+  },
+  "contexts": {
+    "scoring": {
+      "V1": "./context/scoring/V1.md"
+    }
+  }
 }
 ```
 
-Templates use placeholders like `<CHARACTERISTIC_NAME.md>` that are replaced with content from the characteristic files.
+Templates use placeholders like `<CHARACTERISTIC_NAME.md>` that are replaced
+with content from the registered characteristic files.
 
 ## Output Layout
 
