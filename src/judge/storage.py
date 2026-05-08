@@ -1,31 +1,49 @@
-"""Storage for judgments and rankings."""
+"""Issue-first storage for scoring judgments and rankings."""
 
 import json
+import re
 from dataclasses import asdict
 from pathlib import Path
 from uuid import uuid4
 
 from .models import (
     CharacteristicRanking,
-    ScoringJudgment,
     Ranking,
     RankingJudgment,
     Score,
+    ScoringJudgment,
 )
 
 
-def judgment_filename(
+def judgment_variant(
     exposure: str,
-    basis: str,
     granularity: str,
     characteristic_id: str | None,
 ) -> str:
-    """Build the filename for a judgment/ranking variant.
-
-    Format: {exposure}_{basis}_{all|characteristic}.json
-    """
+    """Build the prompt/exposure variant suffix."""
     suffix = characteristic_id if granularity == "single" else "all"
-    return f"{exposure}_{basis}_{suffix}.json"
+    return f"{exposure}_{suffix}"
+
+
+def slugify_judge_model(judge_model: str) -> str:
+    """Convert a judge model name to a filesystem-safe slug."""
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "_", judge_model.strip())
+    return slug.strip("_") or "unknown_model"
+
+
+def judge_run_id(
+    judge_model: str,
+    exposure: str,
+    granularity: str,
+    characteristic_id: str | None,
+) -> str:
+    """Build the shared run id used by scoring and ranking outputs."""
+    return "__".join(
+        [
+            slugify_judge_model(judge_model),
+            judgment_variant(exposure, granularity, characteristic_id),
+        ]
+    )
 
 
 def _atomic_write(path: Path, content: str) -> None:
@@ -36,39 +54,45 @@ def _atomic_write(path: Path, content: str) -> None:
 
 
 class ScoringStorage:
-    """Per-solution scoring judgments stored under each solution folder."""
+    """Per-solution scores stored under data/judgments/<issue_id>/scoring/."""
 
-    def __init__(self, solutions_dir: Path):
-        self.solutions_dir = solutions_dir
+    def __init__(self, judgments_dir: Path):
+        self.judgments_dir = judgments_dir
+        self.judgments_dir.mkdir(parents=True, exist_ok=True)
 
     def save(self, judgment: ScoringJudgment) -> Path:
-        folder = self.solutions_dir / judgment.solution_folder
-        if not folder.exists():
-            raise ValueError(f"Solution folder not found: {folder}")
-
-        judgments_dir = folder / "judgments"
-        judgments_dir.mkdir(exist_ok=True)
-
-        filename = judgment_filename(
-            judgment.exposure,
-            judgment.basis,
-            judgment.granularity,
-            judgment.characteristic_id,
+        run_dir = (
+            self.judgments_dir
+            / judgment.issue_id
+            / "scoring"
+            / judge_run_id(
+                judgment.judge_model,
+                judgment.exposure,
+                judgment.granularity,
+                judgment.characteristic_id,
+            )
         )
-        path = judgments_dir / filename
+        run_dir.mkdir(parents=True, exist_ok=True)
+        path = run_dir / f"{judgment.solution_folder}.json"
         _atomic_write(path, json.dumps(asdict(judgment), indent=2, ensure_ascii=False))
         return path
 
     def load(
         self,
+        issue_id: str,
         solution_folder: str,
+        judge_model: str,
         exposure: str,
-        basis: str,
         granularity: str,
         characteristic_id: str | None = None,
     ) -> ScoringJudgment | None:
-        filename = judgment_filename(exposure, basis, granularity, characteristic_id)
-        path = self.solutions_dir / solution_folder / "judgments" / filename
+        path = (
+            self.judgments_dir
+            / issue_id
+            / "scoring"
+            / judge_run_id(judge_model, exposure, granularity, characteristic_id)
+            / f"{solution_folder}.json"
+        )
         if not path.exists():
             return None
         with open(path, encoding="utf-8") as f:
@@ -80,66 +104,62 @@ class ScoringStorage:
 
     def has_judgment(
         self,
-        folder: Path,
+        issue_id: str,
+        solution_folder: str,
+        judge_model: str,
         exposure: str,
-        basis: str,
         granularity: str,
         characteristic_id: str | None = None,
     ) -> bool:
-        if not folder.is_dir() or not (folder / "solution.json").exists():
-            return False
-        filename = judgment_filename(exposure, basis, granularity, characteristic_id)
-        return (folder / "judgments" / filename).exists()
-
-    def list_unjudged(
-        self,
-        exposure: str,
-        basis: str,
-        granularity: str,
-        characteristic_id: str | None = None,
-    ) -> list[str]:
-        return [
-            folder.name
-            for folder in sorted(self.solutions_dir.iterdir())
-            if folder.is_dir()
-            and (folder / "solution.json").exists()
-            and not self.has_judgment(
-                folder, exposure, basis, granularity, characteristic_id
+        return (
+            self.load(
+                issue_id,
+                solution_folder,
+                judge_model,
+                exposure,
+                granularity,
+                characteristic_id,
             )
-        ]
+            is not None
+        )
 
 
 class RankingStorage:
-    """Group rankings stored under data/rankings/<group_id>/."""
+    """Rankings stored under data/judgments/<issue_id>/ranking/."""
 
-    def __init__(self, rankings_dir: Path):
-        self.rankings_dir = rankings_dir
-        self.rankings_dir.mkdir(parents=True, exist_ok=True)
+    def __init__(self, judgments_dir: Path):
+        self.judgments_dir = judgments_dir
+        self.judgments_dir.mkdir(parents=True, exist_ok=True)
 
     def save(self, judgment: RankingJudgment) -> Path:
-        group_dir = self.rankings_dir / judgment.group_id
-        group_dir.mkdir(parents=True, exist_ok=True)
-
-        filename = judgment_filename(
-            judgment.exposure,
-            judgment.basis,
-            judgment.granularity,
-            judgment.characteristic_id,
+        ranking_dir = self.judgments_dir / judgment.issue_id / "ranking"
+        ranking_dir.mkdir(parents=True, exist_ok=True)
+        filename = (
+            judge_run_id(
+                judgment.judge_model,
+                judgment.exposure,
+                judgment.granularity,
+                judgment.characteristic_id,
+            )
+            + ".json"
         )
-        path = group_dir / filename
+        path = ranking_dir / filename
         _atomic_write(path, json.dumps(asdict(judgment), indent=2, ensure_ascii=False))
         return path
 
     def load(
         self,
-        group_id: str,
+        issue_id: str,
+        judge_model: str,
         exposure: str,
-        basis: str,
         granularity: str,
         characteristic_id: str | None = None,
     ) -> RankingJudgment | None:
-        filename = judgment_filename(exposure, basis, granularity, characteristic_id)
-        path = self.rankings_dir / group_id / filename
+        filename = (
+            judge_run_id(judge_model, exposure, granularity, characteristic_id)
+            + ".json"
+        )
+        path = self.judgments_dir / issue_id / "ranking" / filename
         if not path.exists():
             return None
         with open(path, encoding="utf-8") as f:
@@ -155,11 +175,19 @@ class RankingStorage:
 
     def has_ranking(
         self,
-        group_id: str,
+        issue_id: str,
+        judge_model: str,
         exposure: str,
-        basis: str,
         granularity: str,
         characteristic_id: str | None = None,
     ) -> bool:
-        filename = judgment_filename(exposure, basis, granularity, characteristic_id)
-        return (self.rankings_dir / group_id / filename).exists()
+        return (
+            self.load(
+                issue_id,
+                judge_model,
+                exposure,
+                granularity,
+                characteristic_id,
+            )
+            is not None
+        )

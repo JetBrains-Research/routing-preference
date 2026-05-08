@@ -66,7 +66,8 @@ class Ranker:
     ) -> None:
         if len(solutions) != N_SOLUTIONS:
             raise ValueError(
-                f"Ranking requires exactly {N_SOLUTIONS} solutions, got {len(solutions)}"
+                f"Ranking requires exactly {N_SOLUTIONS} solutions, "
+                f"got {len(solutions)}"
             )
         if len(solution_ids) != N_SOLUTIONS:
             raise ValueError(

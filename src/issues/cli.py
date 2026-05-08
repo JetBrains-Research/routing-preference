@@ -6,13 +6,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-logger = logging.getLogger(__name__)
-
 from .classifier import IssueClassifier
 from .collector import IssueCollector
 from .filters import IssueFilter
 from .reviewer import ReviewerManager
 from .storage import HuggingFaceStorage, IssueStorage
+
+logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.resolve()
 DEFAULT_ISSUES_DIR = PROJECT_ROOT / "data" / "issues"

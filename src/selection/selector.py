@@ -16,6 +16,9 @@ class ScoredSolution:
     solution_id: str
     scores: dict[str, float]
     objective_metrics: dict[str, float] = field(default_factory=dict)
+    model_slug: str | None = None
+    run_id: str | None = None
+    relative_path: str | None = None
 
     @property
     def score_vector(self) -> tuple[float, ...]:

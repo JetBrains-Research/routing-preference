@@ -5,8 +5,8 @@ from datetime import datetime
 from ..models import Issue, Solution
 from .models import (
     CharacteristicRanking,
-    ScoringJudgment,
     RankingJudgment,
+    ScoringJudgment,
 )
 from .ranking import V1Ranker, V2Ranker
 from .scoring import V1Scorer, V2Scorer

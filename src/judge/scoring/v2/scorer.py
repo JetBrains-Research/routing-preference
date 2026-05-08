@@ -54,7 +54,9 @@ class Scorer:
         solution: Solution,
         source_files: dict[str, str],
     ) -> str:
-        context = self.prompt_loader.load_context(basis="scoring", exposure=self.exposure)
+        context = self.prompt_loader.load_context(
+            basis="scoring", exposure=self.exposure
+        )
         context = context.replace("<ISSUE_TITLE>", issue.title)
         context = context.replace("<ISSUE_BODY>", issue.body)
         context = context.replace(
