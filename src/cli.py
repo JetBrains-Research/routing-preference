@@ -3,6 +3,7 @@
 import argparse
 import json
 import logging
+from dataclasses import replace
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -242,7 +243,35 @@ def _cmd_judge_ranking(args) -> None:
 
 def cmd_select(args) -> None:
     """Select two answers for comparison."""
-    from .selection import SelectionStorage, select_pair_for_issue
+    if args.selection_method != "greedy" and not args.global_balanced:
+        raise ValueError("--selection-method is only supported with --global-balanced")
+
+    from .selection import (
+        SelectionStorage,
+        generate_candidates_for_issue,
+        load_selection_config,
+        select_balanced_pairs,
+        select_balanced_pairs_cpsat,
+        select_pair_for_issue,
+        selection_source_run_id,
+    )
+
+    config = load_selection_config(args.selection_config)
+    max_average_gap = (
+        args.max_average_gap
+        if args.max_average_gap is not None
+        else config.max_average_gap
+    )
+    min_subscore_diversity = (
+        args.min_subscore_diversity
+        if args.min_subscore_diversity is not None
+        else config.min_subscore_diversity
+    )
+    effective_config = replace(
+        config,
+        max_average_gap=max_average_gap,
+        min_subscore_diversity=min_subscore_diversity,
+    )
 
     issue_ids = (
         [args.issue]
@@ -250,9 +279,53 @@ def cmd_select(args) -> None:
         else _list_solution_issue_ids(args.solutions_dir)
     )
     storage = SelectionStorage(args.output)
+    run_id = selection_source_run_id(
+        "scoring",
+        args.judge_model,
+        args.exposure,
+        "all",
+    )
 
     logger.info("Selecting answer pairs for %d issues", len(issue_ids))
     logger.info("Scoring exposure: %s", args.exposure)
+    logger.info("Selection config: %s", args.selection_config)
+    logger.info("Max average gap: %.3f", max_average_gap)
+    logger.info("Min subscore diversity: %.3f", min_subscore_diversity)
+
+    if args.global_balanced:
+        issue_candidates = {}
+        for issue_id in issue_ids:
+            try:
+                candidates = generate_candidates_for_issue(
+                    args.solutions_dir,
+                    args.judgments_dir,
+                    issue_id,
+                    judge_model=args.judge_model,
+                    exposure=args.exposure,
+                    expected_solutions=args.expected_solutions,
+                    max_average_gap=max_average_gap,
+                    min_subscore_diversity=min_subscore_diversity,
+                )
+                storage.save_candidates(issue_id, run_id, candidates)
+                issue_candidates[issue_id] = candidates
+            except Exception as e:
+                logger.error("  %s: FAILED - %s", issue_id, e)
+
+        if not issue_candidates:
+            raise ValueError("No issues had enough scored candidates for selection")
+
+        if args.selection_method == "cpsat":
+            result = select_balanced_pairs_cpsat(issue_candidates, effective_config)
+            method = "cpsat_v1"
+        else:
+            result = select_balanced_pairs(issue_candidates, effective_config)
+            method = "greedy_balanced_v1"
+        global_run_id = args.selection_run_id or f"{method}__{run_id}"
+        path = storage.save_global_run(global_run_id, result, method=method)
+        logger.info("Saved global balanced selection run: %s", path)
+        logger.info("Model usage: %s", result.model_usage)
+        logger.info("Quality band usage: %s", result.quality_band_usage)
+        return
 
     for issue_id in issue_ids:
         try:
@@ -263,8 +336,20 @@ def cmd_select(args) -> None:
                 judge_model=args.judge_model,
                 exposure=args.exposure,
                 expected_solutions=args.expected_solutions,
-                max_average_gap=args.max_average_gap,
+                max_average_gap=max_average_gap,
+                min_subscore_diversity=min_subscore_diversity,
             )
+            candidates = generate_candidates_for_issue(
+                args.solutions_dir,
+                args.judgments_dir,
+                issue_id,
+                judge_model=args.judge_model,
+                exposure=args.exposure,
+                expected_solutions=args.expected_solutions,
+                max_average_gap=max_average_gap,
+                min_subscore_diversity=min_subscore_diversity,
+            )
+            storage.save_candidates(issue_id, run_id, candidates)
             path = storage.save(selected)
             logger.info(
                 "  %s: %s vs %s -> %s",
@@ -464,12 +549,51 @@ def main() -> None:
         help="Required number of scored solutions per issue (default: 7)",
     )
     select_parser.add_argument(
+        "--selection-config",
+        type=Path,
+        default=Path("configs/selection.json"),
+        help="Path to selection config JSON (default: configs/selection.json)",
+    )
+    select_parser.add_argument(
         "--max-average-gap",
         type=float,
-        default=0.75,
+        default=None,
         help=(
             "Maximum subjective-average gap for preferred pairs; if no pair "
-            "matches, selection falls back to all pairs (default: 0.75)"
+            "matches, selection falls back to all pairs. Overrides config."
+        ),
+    )
+    select_parser.add_argument(
+        "--min-subscore-diversity",
+        type=float,
+        default=None,
+        help=(
+            "Minimum per-characteristic absolute score difference sum for "
+            "preferred pairs. Overrides config."
+        ),
+    )
+    select_parser.add_argument(
+        "--global-balanced",
+        action="store_true",
+        help=(
+            "Select one pair per issue jointly using the global balanced "
+            "selector instead of independent per-issue selection"
+        ),
+    )
+    select_parser.add_argument(
+        "--selection-method",
+        choices=["greedy", "cpsat"],
+        default="greedy",
+        help=(
+            "Global selection backend to use with --global-balanced "
+            "(default: greedy)"
+        ),
+    )
+    select_parser.add_argument(
+        "--selection-run-id",
+        help=(
+            "Run id for --global-balanced outputs; defaults to a deterministic "
+            "id based on the selection method and judge source"
         ),
     )
     select_parser.add_argument(
