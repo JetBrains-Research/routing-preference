@@ -24,7 +24,7 @@ They may be used as tie-breakers and should be shown in the survey.
 
 For every issue:
 
-1. Load all seven solutions and their scoring judgments.
+1. Load all seven solutions and their scoring judgments for the selected judge model.
 2. Build a subjective score vector for each solution:
 
    ```text
@@ -54,6 +54,18 @@ The deterministic final tie-breaker keeps selection reproducible.
 
 Only scoring judgments are used. Ranking judgments are intentionally out of scope for the first implementation.
 
+Scoring judgments are read from the issue-first judge output tree:
+
+```text
+data/judgments/<issue_id>/scoring/<judge_model_slug>__<exposure>_<all|characteristic>/<solution_id>.json
+```
+
+`solution_id` is the generated solution model slug plus the run id:
+
+```text
+<solution_model_slug>__<run_id>
+```
+
 The scoring exposure/version is configurable by the caller. Until the best judge variant is chosen, selection code should not hard-code one version.
 
 ## Output
@@ -63,14 +75,37 @@ Selected pairs are represented as:
 ```json
 {
   "issue_id": "repo__name-123",
-  "solution_a": "solution-folder-a",
-  "solution_b": "solution-folder-b",
+  "solution_a": {
+    "solution_id": "openai_gpt-4o-mini__20260507_131500_123456",
+    "model_slug": "openai_gpt-4o-mini",
+    "run_id": "20260507_131500_123456",
+    "relative_path": "repo__name-123/openai_gpt-4o-mini/20260507_131500_123456"
+  },
+  "solution_b": {
+    "solution_id": "anthropic_claude-sonnet__20260507_132010_654321",
+    "model_slug": "anthropic_claude-sonnet",
+    "run_id": "20260507_132010_654321",
+    "relative_path": "repo__name-123/anthropic_claude-sonnet/20260507_132010_654321"
+  },
   "subjective_average_gap": 0.0,
   "subjective_profile_distance": 2.83,
   "objective_distance": 12.0,
-  "scoring_exposure": "V1",
-  "scoring_granularity": "all"
+  "selection_source": "scoring",
+  "judge_model": "openai/gpt-4o",
+  "judge_exposure": "V1",
+  "judge_granularity": "all",
+  "judge_characteristic": null
 }
 ```
 
-The storage helper writes one file per issue under `data/selections/`.
+The storage helper writes one file per issue and selection source:
+
+```text
+data/selections/<issue_id>/<selection_source>__<judge_model_slug>__<exposure>_<all|characteristic>.json
+```
+
+For example:
+
+```text
+data/selections/repo__name-123/scoring__openai_gpt-4o__V1_all.json
+```
