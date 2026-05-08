@@ -26,9 +26,9 @@ class Judge:
             self.scorer = V2Scorer(model=model, exposure=exposure)
             self.ranker = V2Ranker(model=model, exposure=exposure)
 
-    # ----- Scoring -----
+    # Scoring
 
-    def judge(
+    def score(
         self,
         issue: Issue,
         solution: Solution,
@@ -60,7 +60,7 @@ class Judge:
             score_scale=(1, 5),
         )
 
-    def judge_single(
+    def score_single(
         self,
         characteristic_id: str,
         issue: Issue,
@@ -93,7 +93,7 @@ class Judge:
             score_scale=(1, 5),
         )
 
-    # ----- Ranking -----
+    # Ranking
 
     def rank(
         self,

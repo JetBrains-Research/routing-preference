@@ -1,4 +1,4 @@
-"""Routing Preference."""
+"""Routing-preference."""
 
 
 def __getattr__(name: str):

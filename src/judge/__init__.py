@@ -1,4 +1,4 @@
-"""LLM as a Judge"""
+"""LLM as a Judge."""
 
 from .judge import Judge
 from .models import (

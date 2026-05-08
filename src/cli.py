@@ -79,7 +79,7 @@ def _gather_source_files(exposure: str, folder: Path, issue, solution):
 
 
 def cmd_judge(args) -> None:
-    """Judge solutions — scoring or ranking based on --basis."""
+    """Judge solutions, scoring or ranking based on --basis."""
     if args.granularity == "single" and not args.characteristic:
         raise ValueError("--characteristic is required when --granularity single")
 
@@ -129,7 +129,7 @@ def _cmd_judge_scoring(args) -> None:
             source_files = _gather_source_files(args.exposure, folder, issue, solution)
 
             if args.granularity == "single":
-                judgment = judge.judge_single(
+                judgment = judge.score_single(
                     args.characteristic,
                     issue,
                     solution,
@@ -137,7 +137,7 @@ def _cmd_judge_scoring(args) -> None:
                     source_files=source_files,
                 )
             else:
-                judgment = judge.judge(
+                judgment = judge.score(
                     issue, solution, solution_id, source_files=source_files
                 )
 
@@ -241,7 +241,7 @@ def _cmd_judge_ranking(args) -> None:
 
 
 def cmd_select(args) -> None:
-    """Select answer pairs for survey comparison."""
+    """Select two answers for comparison."""
     from .selection import SelectionStorage, select_pair_for_issue
 
     issue_ids = (
@@ -309,7 +309,7 @@ def main() -> None:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # --- generate ---
+    # Generate
     gen_parser = subparsers.add_parser("generate", help="Generate solutions for issues")
     gen_parser.add_argument(
         "--dataset", "-d",
@@ -348,7 +348,7 @@ def main() -> None:
     )
     gen_parser.set_defaults(func=cmd_generate)
 
-    # --- judge ---
+    # Judge
     judge_parser = subparsers.add_parser("judge", help="Judge solutions")
     judge_parser.add_argument(
         "--solutions-dir", "-s",
@@ -420,7 +420,7 @@ def main() -> None:
     )
     judge_parser.set_defaults(func=cmd_judge)
 
-    # --- select ---
+    # Select
     select_parser = subparsers.add_parser(
         "select",
         help="Select answer pairs for the survey",

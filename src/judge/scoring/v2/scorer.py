@@ -1,8 +1,8 @@
 """V2 scoring - issue + diff + source files.
 
-Supports exposures V2.0 (patch-affected files) and V2.1 (agent-explored files).
-The exposure is determined by which source_files the caller passes in; this
-scorer uses the same prompts for both since only the file set differs.
+Supports exposures
+    V2.0 (patch-affected files) and
+    V2.1 (agent-explored files).
 """
 
 import json

@@ -1,4 +1,4 @@
-"""Solution generation"""
+"""Solution generation."""
 
 import json
 import logging
@@ -245,6 +245,7 @@ class SolutionGenerator:
                     "GITHUB_TOKEN",
                     "GH_TOKEN",
                     "OPENAI_API_KEY",
+                    "OPENROUTER_API_KEY",
                     "ANTHROPIC_API_KEY",
                     "GEMINI_API_KEY",
                     "DEEPSEEK_API_KEY",
