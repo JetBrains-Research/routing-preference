@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 DEFAULT_SOLUTIONS_DIR = PROJECT_ROOT / "data" / "solutions"
-DEFAULT_RANKINGS_DIR = PROJECT_ROOT / "data" / "rankings"
+DEFAULT_JUDGMENTS_DIR = PROJECT_ROOT / "data" / "judgments"
 DEFAULT_SELECTIONS_DIR = PROJECT_ROOT / "data" / "selections"
 
 CHARACTERISTICS = ["intent", "correctness", "scope", "quality"]
@@ -49,7 +49,12 @@ def _load_solution(folder: Path):
     from .models import Solution
 
     with open(folder / "solution.json", encoding="utf-8") as f:
-        return Solution(**json.load(f))
+        data = json.load(f)
+    metrics_path = folder / "objective_metrics.json"
+    if metrics_path.exists() and "objective_metrics" not in data:
+        with open(metrics_path, encoding="utf-8") as f:
+            data["objective_metrics"] = json.load(f)
+    return Solution(**data)
 
 
 def _gather_source_files(exposure: str, folder: Path, issue, solution):
@@ -86,32 +91,38 @@ def cmd_judge(args) -> None:
 
 def _cmd_judge_scoring(args) -> None:
     from .judge import Judge, ScoringStorage
+    from .storage import iter_solution_paths, solution_id_from_path
 
     judge = Judge(model=args.model, exposure=args.exposure)
-    storage = ScoringStorage(args.solutions_dir)
+    storage = ScoringStorage(args.judgments_dir)
 
     if args.solution:
-        folders = [args.solution]
+        folders = [_resolve_solution_path(args.solutions_dir, args.solution)]
     elif args.force:
         folders = [
-            f.name
-            for f in sorted(args.solutions_dir.iterdir())
-            if f.is_dir() and (f / "solution.json").exists()
+            folder for folder in iter_solution_paths(args.solutions_dir)
         ]
     else:
-        folders = storage.list_unjudged(
-            exposure=args.exposure,
-            basis=args.basis,
-            granularity=args.granularity,
-            characteristic_id=args.characteristic,
-        )
+        folders = []
+        for folder in iter_solution_paths(args.solutions_dir):
+            issue = _load_issue(folder)
+            solution_id = solution_id_from_path(folder)
+            if not storage.has_judgment(
+                issue.issue_id,
+                solution_id,
+                args.model,
+                args.exposure,
+                args.granularity,
+                args.characteristic,
+            ):
+                folders.append(folder)
 
     variant = f"{args.exposure}_{args.basis}_{args.characteristic or 'all'}"
     logger.info("Scoring %d solutions in: %s", len(folders), args.solutions_dir)
     logger.info("Model: %s, Variant: %s", args.model, variant)
 
-    for folder_name in folders:
-        folder = args.solutions_dir / folder_name
+    for folder in folders:
+        solution_id = solution_id_from_path(folder)
         try:
             issue = _load_issue(folder)
             solution = _load_solution(folder)
@@ -122,42 +133,47 @@ def _cmd_judge_scoring(args) -> None:
                     args.characteristic,
                     issue,
                     solution,
-                    folder_name,
+                    solution_id,
                     source_files=source_files,
                 )
             else:
                 judgment = judge.judge(
-                    issue, solution, folder_name, source_files=source_files
+                    issue, solution, solution_id, source_files=source_files
                 )
 
             storage.save(judgment)
-            logger.info("  %s: %.2f", folder_name, judgment.overall_score)
+            logger.info("  %s: %.2f", solution_id, judgment.overall_score)
         except Exception as e:
-            logger.error("  %s: FAILED - %s", folder_name, e)
+            logger.error("  %s: FAILED - %s", folder, e)
 
 
 def _cmd_judge_ranking(args) -> None:
     from .judge import Judge, RankingStorage
+    from .storage import solution_id_from_path
 
     if not args.solutions:
         raise ValueError("--solutions is required when --basis ranking")
     if not args.group:
         raise ValueError("--group is required when --basis ranking")
 
-    folder_names = [s.strip() for s in args.solutions.split(",") if s.strip()]
-    if len(folder_names) != N_RANKING_SOLUTIONS:
+    solution_paths = [
+        _resolve_solution_path(args.solutions_dir, s.strip())
+        for s in args.solutions.split(",")
+        if s.strip()
+    ]
+    if len(solution_paths) != N_RANKING_SOLUTIONS:
         raise ValueError(
             f"Ranking requires exactly {N_RANKING_SOLUTIONS} solutions, "
-            f"got {len(folder_names)}"
+            f"got {len(solution_paths)}"
         )
-    if len(set(folder_names)) != N_RANKING_SOLUTIONS:
+    solution_ids = [solution_id_from_path(path) for path in solution_paths]
+    if len(set(solution_ids)) != N_RANKING_SOLUTIONS:
         raise ValueError("--solutions must not contain duplicates")
 
     issues = []
     solutions = []
     source_files_per_solution = []
-    for folder_name in folder_names:
-        folder = args.solutions_dir / folder_name
+    for folder in solution_paths:
         if not folder.exists():
             raise ValueError(f"Solution folder not found: {folder}")
         issue = _load_issue(folder)
@@ -177,12 +193,12 @@ def _cmd_judge_ranking(args) -> None:
     issue = issues[0]
 
     judge = Judge(model=args.model, exposure=args.exposure)
-    storage = RankingStorage(args.rankings_dir)
+    storage = RankingStorage(args.judgments_dir)
 
     if not args.force and storage.has_ranking(
-        args.group,
+        issue.issue_id,
+        args.model,
         args.exposure,
-        args.basis,
         args.granularity,
         args.characteristic,
     ):
@@ -193,7 +209,7 @@ def _cmd_judge_ranking(args) -> None:
         return
 
     variant = f"{args.exposure}_{args.basis}_{args.characteristic or 'all'}"
-    logger.info("Ranking %d solutions for group: %s", len(folder_names), args.group)
+    logger.info("Ranking %d solutions for group: %s", len(solution_ids), args.group)
     logger.info("Model: %s, Variant: %s", args.model, variant)
 
     if args.granularity == "single":
@@ -201,7 +217,7 @@ def _cmd_judge_ranking(args) -> None:
             args.characteristic,
             issue,
             solutions,
-            folder_names,
+            solution_ids,
             args.group,
             source_files_per_solution=source_files_per_solution or None,
         )
@@ -209,7 +225,7 @@ def _cmd_judge_ranking(args) -> None:
         judgment = judge.rank(
             issue,
             solutions,
-            folder_names,
+            solution_ids,
             args.group,
             source_files_per_solution=source_files_per_solution or None,
         )
@@ -242,7 +258,9 @@ def cmd_select(args) -> None:
         try:
             selected = select_pair_for_issue(
                 args.solutions_dir,
+                args.judgments_dir,
                 issue_id,
+                judge_model=args.judge_model,
                 exposure=args.exposure,
                 expected_solutions=args.expected_solutions,
                 max_average_gap=args.max_average_gap,
@@ -251,8 +269,8 @@ def cmd_select(args) -> None:
             logger.info(
                 "  %s: %s vs %s -> %s",
                 issue_id,
-                selected.solution_a,
-                selected.solution_b,
+                selected.solution_a.solution_id,
+                selected.solution_b.solution_id,
                 path,
             )
         except Exception as e:
@@ -260,18 +278,25 @@ def cmd_select(args) -> None:
 
 
 def _list_solution_issue_ids(solutions_dir: Path) -> list[str]:
+    from .storage import iter_solution_paths
+
     issue_ids = set()
-    for folder in sorted(solutions_dir.iterdir()):
-        if not folder.is_dir() or not (folder / "solution.json").exists():
-            continue
+    for folder in iter_solution_paths(solutions_dir):
         try:
             with open(folder / "solution.json", encoding="utf-8") as f:
                 data = json.load(f)
             if issue_id := data.get("issue_id"):
                 issue_ids.add(issue_id)
         except Exception as e:
-            logger.warning("Skipping %s while listing issue ids: %s", folder.name, e)
+            logger.warning("Skipping %s while listing issue ids: %s", folder, e)
     return sorted(issue_ids)
+
+
+def _resolve_solution_path(solutions_dir: Path, value: str) -> Path:
+    path = Path(value)
+    if not path.is_absolute():
+        path = solutions_dir / path
+    return path
 
 
 def main() -> None:
@@ -332,10 +357,10 @@ def main() -> None:
         help=f"Directory containing solutions (default: {DEFAULT_SOLUTIONS_DIR})",
     )
     judge_parser.add_argument(
-        "--rankings-dir",
+        "--judgments-dir",
         type=Path,
-        default=DEFAULT_RANKINGS_DIR,
-        help=f"Directory for ranking results (default: {DEFAULT_RANKINGS_DIR})",
+        default=DEFAULT_JUDGMENTS_DIR,
+        help=f"Directory for judge outputs (default: {DEFAULT_JUDGMENTS_DIR})",
     )
     judge_parser.add_argument(
         "--model", "-m",
@@ -411,6 +436,17 @@ def main() -> None:
         type=Path,
         default=DEFAULT_SELECTIONS_DIR,
         help=f"Output directory for selected pairs (default: {DEFAULT_SELECTIONS_DIR})",
+    )
+    select_parser.add_argument(
+        "--judgments-dir",
+        type=Path,
+        default=DEFAULT_JUDGMENTS_DIR,
+        help=f"Directory containing judge outputs (default: {DEFAULT_JUDGMENTS_DIR})",
+    )
+    select_parser.add_argument(
+        "--judge-model",
+        default="openai/gpt-4o",
+        help="Judge model whose scoring outputs should be used",
     )
     select_parser.add_argument(
         "--issue",

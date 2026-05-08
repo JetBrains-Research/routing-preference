@@ -5,30 +5,35 @@ from dataclasses import asdict
 from pathlib import Path
 from uuid import uuid4
 
-from .models import SelectedPair
+from ..judge.storage import judge_run_id, slugify_judge_model
+from ..storage import iter_solution_paths, solution_id_from_path
+from .models import SelectedPair, SelectedSolution
 from .selector import CHARACTERISTIC_ORDER, ScoredSolution, select_best_pair
 
 
 def load_scored_solutions(
     solutions_dir: Path,
+    judgments_dir: Path,
     issue_id: str,
     *,
+    judge_model: str,
     exposure: str,
     granularity: str = "all",
 ) -> list[ScoredSolution]:
-    """Load scored solutions for one issue from stored solution folders."""
+    """Load scored solutions for one issue from central judge outputs."""
     scored = []
 
-    for folder in sorted(solutions_dir.iterdir()):
-        if not folder.is_dir() or not (folder / "solution.json").exists():
-            continue
-
+    for folder in iter_solution_paths(solutions_dir):
         solution = _load_json(folder / "solution.json")
         if solution.get("issue_id") != issue_id:
             continue
 
+        solution_id = solution_id_from_path(folder)
         judgment = _load_scoring_judgment(
-            folder,
+            judgments_dir,
+            issue_id,
+            solution_id,
+            judge_model=judge_model,
             exposure=exposure,
             granularity=granularity,
         )
@@ -43,9 +48,12 @@ def load_scored_solutions(
 
         scored.append(
             ScoredSolution(
-                solution_id=folder.name,
+                solution_id=solution_id,
                 scores=scores,
-                objective_metrics=_load_objective_metrics(solution),
+                objective_metrics=_load_objective_metrics(folder, solution),
+                model_slug=folder.parent.name,
+                run_id=folder.name,
+                relative_path=folder.relative_to(solutions_dir).as_posix(),
             )
         )
 
@@ -54,8 +62,10 @@ def load_scored_solutions(
 
 def select_pair_for_issue(
     solutions_dir: Path,
+    judgments_dir: Path,
     issue_id: str,
     *,
+    judge_model: str,
     exposure: str,
     expected_solutions: int = 7,
     max_average_gap: float = 0.75,
@@ -63,7 +73,9 @@ def select_pair_for_issue(
     """Load scores for one issue and select its best survey pair."""
     scored = load_scored_solutions(
         solutions_dir,
+        judgments_dir,
         issue_id,
+        judge_model=judge_model,
         exposure=exposure,
         granularity="all",
     )
@@ -77,44 +89,79 @@ def select_pair_for_issue(
     return SelectedPair.from_candidate(
         issue_id,
         candidate,
-        scoring_exposure=exposure,
+        selection_source="scoring",
+        judge_model=judge_model,
+        judge_exposure=exposure,
     )
 
 
 class SelectionStorage:
-    """Stores selected answer pairs under data/selections/."""
+    """Stores selected answer pairs under data/selections/<issue_id>/."""
 
     def __init__(self, selections_dir: Path):
         self.selections_dir = selections_dir
         self.selections_dir.mkdir(parents=True, exist_ok=True)
 
     def save(self, selected_pair: SelectedPair) -> Path:
-        path = self.selections_dir / f"{selected_pair.issue_id}.json"
+        issue_dir = self.selections_dir / selected_pair.issue_id
+        issue_dir.mkdir(parents=True, exist_ok=True)
+        path = issue_dir / f"{selection_run_id(selected_pair)}.json"
         _atomic_write(path, json.dumps(asdict(selected_pair), indent=2))
         return path
 
-    def load(self, issue_id: str) -> SelectedPair | None:
-        path = self.selections_dir / f"{issue_id}.json"
+    def load(self, issue_id: str, run_id: str) -> SelectedPair | None:
+        path = self.selections_dir / issue_id / f"{run_id}.json"
         if not path.exists():
             return None
-        return SelectedPair(**_load_json(path))
+        data = _load_json(path)
+        data["solution_a"] = SelectedSolution(**data["solution_a"])
+        data["solution_b"] = SelectedSolution(**data["solution_b"])
+        return SelectedPair(**data)
+
+
+def selection_run_id(selected_pair: SelectedPair) -> str:
+    """Build a filename-safe id for one selection source/run."""
+    characteristic = (
+        selected_pair.judge_characteristic
+        if selected_pair.judge_granularity == "single"
+        else "all"
+    )
+    return "__".join(
+        [
+            selected_pair.selection_source,
+            slugify_judge_model(selected_pair.judge_model),
+            f"{selected_pair.judge_exposure}_{characteristic}",
+        ]
+    )
 
 
 def _load_scoring_judgment(
-    solution_folder: Path,
+    judgments_dir: Path,
+    issue_id: str,
+    solution_id: str,
     *,
+    judge_model: str,
     exposure: str,
     granularity: str,
 ) -> dict | None:
-    suffix = "all" if granularity == "all" else granularity
-    path = solution_folder / "judgments" / f"{exposure}_scoring_{suffix}.json"
+    path = (
+        judgments_dir
+        / issue_id
+        / "scoring"
+        / judge_run_id(judge_model, exposure, granularity, None)
+        / f"{solution_id}.json"
+    )
     if not path.exists():
         return None
     return _load_json(path)
 
 
-def _load_objective_metrics(solution: dict) -> dict[str, float]:
-    metrics = solution.get("objective_metrics") or {}
+def _load_objective_metrics(solution_folder: Path, solution: dict) -> dict[str, float]:
+    metrics_path = solution_folder / "objective_metrics.json"
+    if metrics_path.exists():
+        metrics = _load_json(metrics_path)
+    else:
+        metrics = solution.get("objective_metrics") or {}
     if not metrics and "duration_ms" in solution:
         metrics["completion_time_seconds"] = float(solution["duration_ms"]) / 1000
     return {

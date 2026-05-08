@@ -51,7 +51,8 @@ class RankingJudgment:
     """Complete ranking judgment over a group of solutions.
 
     Spans multiple solutions, identified by their solution folder names.
-    For granularity="all", `rankings` contains one CharacteristicRanking per characteristic.
+    For granularity="all", `rankings` contains one CharacteristicRanking per
+    characteristic.
     For granularity="single", it contains exactly one, matching `characteristic_id`.
     """
 
