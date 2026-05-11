@@ -2,6 +2,7 @@
 
 Supports exposures
     V2.0 (patch-affected files) and
+    
     V2.1 (agent-explored files).
 """
 

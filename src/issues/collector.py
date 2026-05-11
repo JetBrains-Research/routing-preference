@@ -9,7 +9,7 @@ from typing import Iterator
 
 import requests
 
-from .models import CollectedIssue, Repository
+from .models import CollectedIssue
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +18,6 @@ DEFAULT_CUTOFF_DAYS = 730  # 2 years
 
 class GitHubAPIError(Exception):
     """Error from GitHub API."""
-
-    pass
-
-
-class RateLimitError(GitHubAPIError):
-    """Rate limit exceeded."""
 
     pass
 
@@ -106,10 +100,8 @@ class IssueCollector:
                 return self._request(
                     method, endpoint, params, retry_on_rate_limit=False
                 )
-            # Check if it's actually a rate limit issue
             if remaining == "0":
-                raise RateLimitError("GitHub API rate limit exceeded")
-            # Otherwise it's a forbidden error (no permission)
+                raise GitHubAPIError("Rate limit exceeded after retry")
             raise GitHubAPIError(f"Forbidden: {endpoint} - {response.text[:200]}")
 
         if response.status_code == 404:
@@ -124,40 +116,6 @@ class IssueCollector:
             return response.json()
         except requests.JSONDecodeError as e:
             raise GitHubAPIError(f"Invalid JSON response: {e}") from e
-
-    def get_repository(self, owner: str, name: str) -> Repository:
-        """Get repository metadata."""
-        data = self._request("GET", f"/repos/{owner}/{name}")
-        repo = Repository.from_github_repo(data)
-
-        # Get recent commit to check activity
-        try:
-            commits = self._request(
-                "GET",
-                f"/repos/{owner}/{name}/commits",
-                params={"per_page": 1},
-            )
-            if commits:
-                repo.last_commit_date = (
-                    commits[0].get("commit", {}).get("committer", {}).get("date")
-                )
-        except GitHubAPIError:
-            pass
-
-        return repo
-
-    def get_maintainers(self, owner: str, name: str, limit: int = 5) -> list[str]:
-        """Get top contributors (potential maintainers) for a repository."""
-        try:
-            contributors = self._request(
-                "GET",
-                f"/repos/{owner}/{name}/contributors",
-                params={"per_page": limit},
-            )
-            return [c["login"] for c in contributors if c.get("login")]
-        except GitHubAPIError as e:
-            logger.warning("Failed to get contributors for %s/%s: %s", owner, name, e)
-            return []
 
     def collect_issues(
         self,

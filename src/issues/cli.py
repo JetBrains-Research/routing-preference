@@ -9,14 +9,12 @@ from dotenv import load_dotenv
 from .classifier import IssueClassifier
 from .collector import IssueCollector
 from .filters import IssueFilter
-from .reviewer import ReviewerManager
 from .storage import HuggingFaceStorage, IssueStorage
 
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.resolve()
 DEFAULT_ISSUES_DIR = PROJECT_ROOT / "data" / "issues"
-DEFAULT_REVIEWERS_DIR = PROJECT_ROOT / "data" / "reviewers"
 
 # Curated list of repositories
 DEFAULT_REPOS = [
@@ -169,63 +167,6 @@ def cmd_classify(args) -> None:
     if args.output:
         out_storage = IssueStorage(args.output)
         out_storage.save_batch(classified, "classified_issues.json")
-
-
-def cmd_reviewers(args) -> None:
-    """Manage reviewers."""
-    manager = ReviewerManager(args.reviewers_dir)
-
-    if args.action == "import":
-        if not args.repos:
-            logger.error("--repos required for import action")
-            return
-        collector = IssueCollector()
-        for repo in args.repos:
-            owner, name = repo.split("/")
-            maintainers = collector.get_maintainers(owner, name, limit=args.limit)
-            manager.import_maintainers(repo, maintainers)
-            logger.info("Imported %d maintainers from %s", len(maintainers), repo)
-
-    elif args.action == "consent":
-        if not args.usernames:
-            logger.error("--usernames required for consent action")
-            return
-        for username in args.usernames:
-            if manager.set_consent(username, True):
-                logger.info("Granted consent for %s", username)
-            else:
-                logger.warning("Reviewer not found: %s", username)
-
-    elif args.action == "list":
-        reviewers = manager.list_reviewers()
-        logger.info("Total reviewers: %d", len(reviewers))
-        for r in reviewers:
-            status = "consented" if r.consent_given else "pending"
-            logger.info("  %s (%s): %s", r.github_username, status, r.repos)
-
-    elif args.action == "stats":
-        stats = manager.get_stats()
-        logger.info("Reviewer Statistics:")
-        for key, value in stats.items():
-            logger.info("  %s: %s", key, value)
-
-
-def cmd_assign(args) -> None:
-    """Assign reviewers to issues."""
-    storage = IssueStorage(args.input)
-    manager = ReviewerManager(args.reviewers_dir)
-
-    issues = list(storage.load_all())
-    logger.info("Loaded %d issues", len(issues))
-
-    assigned, unassigned = manager.bulk_assign(issues)
-
-    logger.info("Assigned: %d", len(assigned))
-    logger.info("Unassigned: %d", len(unassigned))
-
-    output_dir = args.output if args.output else args.input
-    out_storage = IssueStorage(output_dir)
-    out_storage.save_batch(assigned, "assigned_issues.json")
 
 
 def cmd_export(args) -> None:
@@ -386,62 +327,6 @@ def main() -> None:
         help="Use LLM for unlabeled issues",
     )
     classify_parser.set_defaults(func=cmd_classify)
-
-    # Reviewers command
-    reviewers_parser = subparsers.add_parser("reviewers", help="Manage reviewers")
-    reviewers_parser.add_argument(
-        "action",
-        choices=["import", "consent", "list", "stats"],
-        help="Action to perform",
-    )
-    reviewers_parser.add_argument(
-        "--repos",
-        "-r",
-        nargs="+",
-        help="Repositories for import action",
-    )
-    reviewers_parser.add_argument(
-        "--usernames",
-        "-u",
-        nargs="+",
-        help="Usernames for consent action",
-    )
-    reviewers_parser.add_argument(
-        "--limit",
-        type=int,
-        default=5,
-        help="Max maintainers per repo",
-    )
-    reviewers_parser.add_argument(
-        "--reviewers-dir",
-        type=Path,
-        default=DEFAULT_REVIEWERS_DIR,
-        help="Reviewers storage directory",
-    )
-    reviewers_parser.set_defaults(func=cmd_reviewers)
-
-    # Assign command
-    assign_parser = subparsers.add_parser("assign", help="Assign reviewers to issues")
-    assign_parser.add_argument(
-        "--input",
-        "-i",
-        type=Path,
-        default=DEFAULT_ISSUES_DIR,
-        help="Input directory",
-    )
-    assign_parser.add_argument(
-        "--output",
-        "-o",
-        type=Path,
-        help="Output directory",
-    )
-    assign_parser.add_argument(
-        "--reviewers-dir",
-        type=Path,
-        default=DEFAULT_REVIEWERS_DIR,
-        help="Reviewers storage directory",
-    )
-    assign_parser.set_defaults(func=cmd_assign)
 
     # Export command
     export_parser = subparsers.add_parser("export", help="Export to HuggingFace")
