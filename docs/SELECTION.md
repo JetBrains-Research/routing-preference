@@ -93,6 +93,9 @@ good:   pair_mean >= high_threshold
 ```
 
 Quality-band balancing should be configurable.
+`quality_bands` may be omitted when `quality_band_balance_weight` is `0`.
+If `quality_band_balance_weight` is greater than `0`, quality bands must be
+defined.
 
 
 ## Global Selection

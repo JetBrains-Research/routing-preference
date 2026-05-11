@@ -105,6 +105,18 @@ def iter_solution_paths(
     return sorted(path.parent for path in root.rglob("solution.json"))
 
 
+def solution_id_from_run_dir(run_dir: Path) -> str:
+    """Return the stable solution id for an issue/model/run directory."""
+    if run_dir.name == "solution.json":
+        raise ValueError(
+            "solution_id_from_run_dir expects a run directory, not solution.json"
+        )
+    return f"{run_dir.parent.name}__{run_dir.name}"
+
+
 def solution_id_from_path(solution_path: Path) -> str:
-    """Return the stable solution id used in judgment filenames."""
-    return f"{solution_path.parent.name}__{solution_path.name}"
+    """Compatibility wrapper for run-directory inputs.
+
+    Prefer solution_id_from_run_dir() in new code.
+    """
+    return solution_id_from_run_dir(solution_path)

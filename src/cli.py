@@ -92,7 +92,7 @@ def cmd_judge(args) -> None:
 
 def _cmd_judge_scoring(args) -> None:
     from .judge import Judge, ScoringStorage
-    from .storage import iter_solution_paths, solution_id_from_path
+    from .storage import iter_solution_paths, solution_id_from_run_dir
 
     judge = Judge(model=args.model, exposure=args.exposure)
     storage = ScoringStorage(args.judgments_dir)
@@ -107,7 +107,7 @@ def _cmd_judge_scoring(args) -> None:
         folders = []
         for folder in iter_solution_paths(args.solutions_dir):
             issue = _load_issue(folder)
-            solution_id = solution_id_from_path(folder)
+            solution_id = solution_id_from_run_dir(folder)
             if not storage.has_judgment(
                 issue.issue_id,
                 solution_id,
@@ -123,7 +123,7 @@ def _cmd_judge_scoring(args) -> None:
     logger.info("Model: %s, Variant: %s", args.model, variant)
 
     for folder in folders:
-        solution_id = solution_id_from_path(folder)
+        solution_id = solution_id_from_run_dir(folder)
         try:
             issue = _load_issue(folder)
             solution = _load_solution(folder)
@@ -150,7 +150,7 @@ def _cmd_judge_scoring(args) -> None:
 
 def _cmd_judge_ranking(args) -> None:
     from .judge import Judge, RankingStorage
-    from .storage import solution_id_from_path
+    from .storage import solution_id_from_run_dir
 
     if not args.solutions:
         raise ValueError("--solutions is required when --basis ranking")
@@ -167,7 +167,7 @@ def _cmd_judge_ranking(args) -> None:
             f"Ranking requires exactly {N_RANKING_SOLUTIONS} solutions, "
             f"got {len(solution_paths)}"
         )
-    solution_ids = [solution_id_from_path(path) for path in solution_paths]
+    solution_ids = [solution_id_from_run_dir(path) for path in solution_paths]
     if len(set(solution_ids)) != N_RANKING_SOLUTIONS:
         raise ValueError("--solutions must not contain duplicates")
 
@@ -551,7 +551,7 @@ def main() -> None:
     select_parser.add_argument(
         "--selection-config",
         type=Path,
-        default=Path("configs/selection.json"),
+        default=None,
         help="Path to selection config JSON (default: configs/selection.json)",
     )
     select_parser.add_argument(
