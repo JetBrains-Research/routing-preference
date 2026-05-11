@@ -186,7 +186,8 @@ Ranking is saved per issue and judge run:
 data/judgments/
   sympy__sympy-11400/
     ranking/
-      openai_gpt-4o__V1_all.json
+      sympy__sympy-11400/
+        openai_gpt-4o__V1_all.json
 ```
 
 Example:

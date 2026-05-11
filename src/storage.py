@@ -94,9 +94,15 @@ class SolutionStorage:
         return self.base_path / safe_id / safe_model / run_id
 
 
-def iter_solution_paths(solutions_dir: Path) -> list[Path]:
-    """Return all solution run directories under the issue/model/run tree."""
-    return sorted(path.parent for path in solutions_dir.rglob("solution.json"))
+def iter_solution_paths(
+    solutions_dir: Path,
+    issue_id: str | None = None,
+) -> list[Path]:
+    """Return solution run directories under the issue/model/run tree."""
+    root = solutions_dir / issue_id if issue_id else solutions_dir
+    if not root.exists():
+        return []
+    return sorted(path.parent for path in root.rglob("solution.json"))
 
 
 def solution_id_from_path(solution_path: Path) -> str:

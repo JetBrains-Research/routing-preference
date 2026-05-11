@@ -86,15 +86,25 @@ def select_best_pair(
 ) -> CandidatePair:
     """Select the best pair from scored solutions.
 
-    Prefer pairs with similar average scores,
-    then choose the strongest profile difference within that close-enough set.
-    If no pair is within max_average_gap, fall back to all pairs.
+    First restrict to pairs whose subjective averages are close enough and whose
+    per-characteristic scores differ enough. Among feasible pairs, prefer the
+    largest subjective profile difference, then the smaller average gap, then
+    larger objective distance, then deterministic solution ids.
+
+    If no pair is feasible, fall back to all pairs using the same ordering.
     """
     candidates = generate_candidate_pairs(
         solutions,
         max_average_gap=max_average_gap,
         min_subscore_diversity=min_subscore_diversity,
     )
+    return select_best_candidate(candidates)
+
+
+def select_best_candidate(candidates: list[CandidatePair]) -> CandidatePair:
+    """Select the best candidate from an already generated candidate list."""
+    if not candidates:
+        raise ValueError("At least one candidate pair is required")
 
     feasible_candidates = [candidate for candidate in candidates if candidate.feasible]
     if feasible_candidates:
