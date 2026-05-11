@@ -6,7 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from ..judge.storage import judge_run_id, slugify_judge_model
-from ..storage import iter_solution_paths, solution_id_from_path
+from ..storage import iter_solution_paths, solution_id_from_run_dir
 from .balanced import BalancedSelectionResult, IssueSelection, ScoredCandidate
 from .models import SelectedPair, SelectedSolution
 from .selector import (
@@ -36,7 +36,7 @@ def load_scored_solutions(
 
     for folder in iter_solution_paths(solutions_dir, issue_id=issue_id):
         solution = _load_json(folder / "solution.json")
-        solution_id = solution_id_from_path(folder)
+        solution_id = solution_id_from_run_dir(folder)
         judgment = _load_scoring_judgment(
             judgments_dir,
             issue_id,

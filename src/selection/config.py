@@ -35,9 +35,6 @@ def load_selection_config(path: Path | None = None) -> SelectionConfig:
 
 def selection_config_from_dict(data: dict) -> SelectionConfig:
     """Build and validate a SelectionConfig from raw JSON data."""
-    if "quality_bands" not in data:
-        raise ValueError("quality_bands must be defined in selection config")
-
     config = SelectionConfig(
         max_average_gap=float(data.get("max_average_gap", 0.75)),
         min_subscore_diversity=float(data.get("min_subscore_diversity", 0.0)),
@@ -50,13 +47,15 @@ def selection_config_from_dict(data: dict) -> SelectionConfig:
         fallback_if_no_feasible_pair=str(
             data.get("fallback_if_no_feasible_pair", "best_local")
         ),
-        quality_bands=_parse_quality_bands(data["quality_bands"]),
+        quality_bands=_parse_quality_bands(data.get("quality_bands")),
     )
     _validate_config(config)
     return config
 
 
-def _parse_quality_bands(raw: dict) -> dict[str, tuple[float, float]]:
+def _parse_quality_bands(raw: dict | None) -> dict[str, tuple[float, float]] | None:
+    if raw is None:
+        return None
     bands = {}
     for name, bounds in raw.items():
         if not isinstance(bounds, list | tuple) or len(bounds) != 2:
@@ -84,7 +83,12 @@ def _validate_config(config: SelectionConfig) -> None:
             raise ValueError(f"{name} must be non-negative")
 
     if not config.quality_bands:
-        raise ValueError("quality_bands must not be empty")
+        if config.quality_band_balance_weight > 0:
+            raise ValueError(
+                "quality_bands must be defined when "
+                "quality_band_balance_weight is greater than zero"
+            )
+        return
 
     for name, (lower, upper) in config.quality_bands.items():
         if lower >= upper:
