@@ -43,14 +43,15 @@ data/judgments/
       <judge_model_slug>__<exposure>_<all|characteristic>/
         <solution_id>.json
     ranking/
-      <judge_model_slug>__<exposure>_<all|characteristic>.json
+      <group_id>/
+        <judge_model_slug>__<exposure>_<all|characteristic>.json
 ```
 
 Examples:
 
 ```text
 data/judgments/Textualize__rich-4050/scoring/openai_gpt-4o__V1_all/openai_gpt-4o-mini__20260507_131500_123456.json
-data/judgments/Textualize__rich-4050/ranking/openai_gpt-4o__V1_all.json
+data/judgments/Textualize__rich-4050/ranking/Textualize__rich-4050/openai_gpt-4o__V1_all.json
 ```
 
 ## Selections

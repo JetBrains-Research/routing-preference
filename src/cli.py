@@ -198,6 +198,7 @@ def _cmd_judge_ranking(args) -> None:
 
     if not args.force and storage.has_ranking(
         issue.issue_id,
+        args.group,
         args.model,
         args.exposure,
         args.granularity,
@@ -252,9 +253,10 @@ def cmd_select(args) -> None:
         load_selection_config,
         select_balanced_pairs,
         select_balanced_pairs_cpsat,
-        select_pair_for_issue,
+        select_best_candidate,
         selection_source_run_id,
     )
+    from .selection.models import SelectedPair
 
     config = load_selection_config(args.selection_config)
     max_average_gap = (
@@ -329,16 +331,6 @@ def cmd_select(args) -> None:
 
     for issue_id in issue_ids:
         try:
-            selected = select_pair_for_issue(
-                args.solutions_dir,
-                args.judgments_dir,
-                issue_id,
-                judge_model=args.judge_model,
-                exposure=args.exposure,
-                expected_solutions=args.expected_solutions,
-                max_average_gap=max_average_gap,
-                min_subscore_diversity=min_subscore_diversity,
-            )
             candidates = generate_candidates_for_issue(
                 args.solutions_dir,
                 args.judgments_dir,
@@ -348,6 +340,14 @@ def cmd_select(args) -> None:
                 expected_solutions=args.expected_solutions,
                 max_average_gap=max_average_gap,
                 min_subscore_diversity=min_subscore_diversity,
+            )
+            selected_candidate = select_best_candidate(candidates)
+            selected = SelectedPair.from_candidate(
+                issue_id,
+                selected_candidate,
+                selection_source="scoring",
+                judge_model=args.judge_model,
+                judge_exposure=args.exposure,
             )
             storage.save_candidates(issue_id, run_id, candidates)
             path = storage.save(selected)

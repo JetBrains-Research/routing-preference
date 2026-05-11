@@ -31,6 +31,12 @@ def slugify_judge_model(judge_model: str) -> str:
     return slug.strip("_") or "unknown_model"
 
 
+def slugify_group_id(group_id: str) -> str:
+    """Convert a ranking group id to a filesystem-safe slug."""
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "_", group_id.strip())
+    return slug.strip("_") or "unknown_group"
+
+
 def judge_run_id(
     judge_model: str,
     exposure: str,
@@ -125,14 +131,19 @@ class ScoringStorage:
 
 
 class RankingStorage:
-    """Rankings stored under data/judgments/<issue_id>/ranking/."""
+    """Rankings stored under data/judgments/<issue_id>/ranking/<group_id>/."""
 
     def __init__(self, judgments_dir: Path):
         self.judgments_dir = judgments_dir
         self.judgments_dir.mkdir(parents=True, exist_ok=True)
 
     def save(self, judgment: RankingJudgment) -> Path:
-        ranking_dir = self.judgments_dir / judgment.issue_id / "ranking"
+        ranking_dir = (
+            self.judgments_dir
+            / judgment.issue_id
+            / "ranking"
+            / slugify_group_id(judgment.group_id)
+        )
         ranking_dir.mkdir(parents=True, exist_ok=True)
         filename = (
             judge_run_id(
@@ -150,6 +161,7 @@ class RankingStorage:
     def load(
         self,
         issue_id: str,
+        group_id: str,
         judge_model: str,
         exposure: str,
         granularity: str,
@@ -159,7 +171,13 @@ class RankingStorage:
             judge_run_id(judge_model, exposure, granularity, characteristic_id)
             + ".json"
         )
-        path = self.judgments_dir / issue_id / "ranking" / filename
+        path = (
+            self.judgments_dir
+            / issue_id
+            / "ranking"
+            / slugify_group_id(group_id)
+            / filename
+        )
         if not path.exists():
             return None
         with open(path, encoding="utf-8") as f:
@@ -176,6 +194,7 @@ class RankingStorage:
     def has_ranking(
         self,
         issue_id: str,
+        group_id: str,
         judge_model: str,
         exposure: str,
         granularity: str,
@@ -184,6 +203,7 @@ class RankingStorage:
         return (
             self.load(
                 issue_id,
+                group_id,
                 judge_model,
                 exposure,
                 granularity,

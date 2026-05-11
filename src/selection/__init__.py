@@ -14,6 +14,7 @@ from .selector import (
     CandidatePair,
     ScoredSolution,
     generate_candidate_pairs,
+    select_best_candidate,
     select_best_pair,
 )
 from .storage import (
@@ -40,6 +41,7 @@ __all__ = [
     "generate_candidates_for_issue",
     "load_scored_solutions",
     "load_selection_config",
+    "select_best_candidate",
     "select_best_pair",
     "select_balanced_pairs",
     "select_balanced_pairs_cpsat",
