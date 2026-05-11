@@ -25,3 +25,4 @@ uv run generate --dataset "dataset-name" --model "openai/gpt-4o"
 - [docs/PROJECT.md](docs/PROJECT.md) - Research overview
 - [docs/PLAN.md](docs/PLAN.md) - Implementation plan
 - [docs/OBJECTIVE.md](docs/OBJECTIVE.md) - Objective characteristic definitions
+- [docs/FILESYSTEM.md](docs/FILESYSTEM.md) - Data and output layout

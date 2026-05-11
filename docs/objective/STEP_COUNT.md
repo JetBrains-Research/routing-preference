@@ -32,6 +32,6 @@ A single bash command may contain multiple shell operations joined with `&&`, `|
 
 ## Current Status
 
-Step count is stored in `solution.json` under `objective_metrics.step_count`.
+Step count is stored in `objective_metrics.json` under `step_count`.
 
-The raw count of all assistant action turns, including the final submission command, is stored under `objective_metrics.raw_action_count` for diagnostics.
+The raw count of all assistant action turns, including the final submission command, is stored under `raw_action_count` for diagnostics.

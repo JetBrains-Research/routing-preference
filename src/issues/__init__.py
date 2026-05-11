@@ -1,11 +1,11 @@
 """Issue collection module for routing-preference."""
 
-from .models import CollectedIssue, Reviewer, Repository, IssueType, Complexity
+from .models import CollectedIssue, Complexity, IssueType, Repository, Reviewer
 
 __all__ = [
     "CollectedIssue",
-    "Reviewer",
-    "Repository",
-    "IssueType",
     "Complexity",
+    "IssueType",
+    "Repository",
+    "Reviewer",
 ]

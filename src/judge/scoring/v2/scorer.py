@@ -1,8 +1,8 @@
 """V2 scoring - issue + diff + source files.
 
-Supports exposures V2.0 (patch-affected files) and V2.1 (agent-explored files).
-The exposure is determined by which source_files the caller passes in; this
-scorer uses the same prompts for both since only the file set differs.
+Supports exposures
+    V2.0 (patch-affected files) and
+    V2.1 (agent-explored files).
 """
 
 import json
@@ -13,8 +13,6 @@ from ....models import Issue, Solution
 from ...loader import CharacteristicLoader, PromptLoader
 from ...models import Score
 
-CHARACTERISTIC_ORDER = ["intent", "correctness", "scope", "quality"]
-
 
 class Scorer:
     def __init__(self, model: str = "openai/gpt-4o", exposure: str = "V2.1"):
@@ -24,6 +22,7 @@ class Scorer:
         self.exposure = exposure
         self.char_loader = CharacteristicLoader()
         self.prompt_loader = PromptLoader(characteristic_loader=self.char_loader)
+        self.characteristic_order = self.char_loader.list_characteristics()
 
     def score_all(
         self,
@@ -54,7 +53,9 @@ class Scorer:
         solution: Solution,
         source_files: dict[str, str],
     ) -> str:
-        context = self.prompt_loader.load_context(basis="scoring", exposure=self.exposure)
+        context = self.prompt_loader.load_context(
+            basis="scoring", exposure=self.exposure
+        )
         context = context.replace("<ISSUE_TITLE>", issue.title)
         context = context.replace("<ISSUE_BODY>", issue.body)
         context = context.replace(
@@ -72,7 +73,7 @@ class Scorer:
         template = self.prompt_loader.load_all_prompt(
             basis="scoring",
             exposure=self.exposure,
-            characteristic_ids=CHARACTERISTIC_ORDER,
+            characteristic_ids=self.characteristic_order,
         )
         return template + "\n\n" + self._build_context(issue, solution, source_files)
 
@@ -130,7 +131,7 @@ class Scorer:
         scores = []
 
         name_to_id = {}
-        for cid in CHARACTERISTIC_ORDER:
+        for cid in self.characteristic_order:
             char = self.char_loader.load(cid)
             name_to_id[char.name] = cid
 
@@ -138,7 +139,7 @@ class Scorer:
             char_id = name_to_id.get(char_name)
             if not char_id:
                 char_id = char_name.lower().replace(" ", "_")
-                if char_id not in CHARACTERISTIC_ORDER:
+                if char_id not in self.characteristic_order:
                     char_id = char_name
 
             score_value = score_data.get("score")
@@ -157,9 +158,9 @@ class Scorer:
                 )
             )
 
-        if len(scores) != len(CHARACTERISTIC_ORDER):
+        if len(scores) != len(self.characteristic_order):
             found_ids = {s.characteristic_id for s in scores}
-            missing = set(CHARACTERISTIC_ORDER) - found_ids
+            missing = set(self.characteristic_order) - found_ids
             raise ValueError(f"Missing characteristics in response: {missing}")
 
         return scores

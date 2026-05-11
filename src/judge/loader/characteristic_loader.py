@@ -1,4 +1,4 @@
-"""Load characteristics from docs/judge/characteristics/."""
+"""Load characteristic fragments configured in docs/judge/prompts.json."""
 
 import json
 from dataclasses import dataclass
@@ -9,7 +9,7 @@ from .xml_parser import strip_xml_tags
 
 @dataclass
 class LoadedCharacteristic:
-    """A characteristic loaded from docs/judge/characteristics/."""
+    """A characteristic loaded from configured Markdown fragments."""
 
     id: str
     name: str
@@ -24,7 +24,7 @@ class LoadedCharacteristic:
 
 
 class CharacteristicLoader:
-    """Loads characteristics from docs/judge/characteristics/{id}/."""
+    """Loads characteristics through docs/judge/prompts.json."""
 
     DEFAULT_PATH = Path(__file__).parent.parent.parent.parent / "docs" / "judge"
 
@@ -47,26 +47,39 @@ class CharacteristicLoader:
         """List available characteristic IDs."""
         return list(self._load_config().get("characteristics", []))
 
+    def _resolve_path(self, relative_path: str) -> Path:
+        path = Path(relative_path)
+        if path.is_absolute():
+            return path
+        if relative_path.startswith("./"):
+            return self.judge_dir / relative_path[2:]
+        return self.judge_dir / path
+
     def load(self, characteristic_id: str) -> LoadedCharacteristic:
         """Load a single characteristic by ID."""
         if characteristic_id in self._cache:
             return self._cache[characteristic_id]
 
-        char_dir = self.judge_dir / "characteristics" / characteristic_id
+        config = self._load_config()
+        paths = config.get("characteristic_paths", {})
+        if characteristic_id not in paths:
+            raise ValueError(f"Characteristic not configured: {characteristic_id}")
+        char_dir = self._resolve_path(paths[characteristic_id])
         if not char_dir.exists():
             raise ValueError(f"Characteristic not found: {characteristic_id}")
 
+        files = config.get("characteristic_files", {})
         char = LoadedCharacteristic(
             id=characteristic_id,
-            name=self._load_file(char_dir / "NAME.md"),
-            short_description=self._load_file(char_dir / "SHORT.md"),
-            long_description=self._load_file(char_dir / "LONG.md"),
-            scoring_basis=self._load_file(char_dir / "SCORING_BASIS.md"),
-            scoring_steps_v1=self._load_file(char_dir / "SCORING_STEPS_V1.md"),
-            scoring_steps_v2=self._load_file(char_dir / "SCORING_STEPS_V2.md"),
-            ranking_basis=self._load_file(char_dir / "RANKING_BASIS.md"),
-            ranking_steps_v1=self._load_file(char_dir / "RANKING_STEPS_V1.md"),
-            ranking_steps_v2=self._load_file(char_dir / "RANKING_STEPS_V2.md"),
+            name=self._load_file(char_dir / files["name"]),
+            short_description=self._load_file(char_dir / files["short_description"]),
+            long_description=self._load_file(char_dir / files["long_description"]),
+            scoring_basis=self._load_file(char_dir / files["scoring_basis"]),
+            scoring_steps_v1=self._load_file(char_dir / files["scoring_steps_v1"]),
+            scoring_steps_v2=self._load_file(char_dir / files["scoring_steps_v2"]),
+            ranking_basis=self._load_file(char_dir / files["ranking_basis"]),
+            ranking_steps_v1=self._load_file(char_dir / files["ranking_steps_v1"]),
+            ranking_steps_v2=self._load_file(char_dir / files["ranking_steps_v2"]),
         )
 
         self._cache[characteristic_id] = char

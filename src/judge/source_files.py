@@ -23,8 +23,7 @@ def load_exposed_files(solution_folder: Path) -> list[str]:
 def extract_changed_files(diff: str) -> list[str]:
     """Extract original file paths from a git diff.
 
-    Skips newly created files (those with --- /dev/null) since they
-    don't exist at the base commit.
+    Skips newly created files (those with --- /dev/null) since they don't exist at the base commit.
     """
     paths = []
     seen = set()

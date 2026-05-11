@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Score:
-    """Score for a single characteristic (scoring basis)."""
+    """Score for a single characteristic."""
 
     characteristic_id: str
     value: int

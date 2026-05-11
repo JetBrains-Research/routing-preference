@@ -14,9 +14,14 @@ class SolutionStorage:
     """
     Structure:
         data/solutions/
-          YYYYMMDD_HHMMSS_{issue_id}_{model}/
-            solution.json
-            patch.diff
+          {issue_id}/
+            {model_slug}/
+              {run_id}/
+                issue.json
+                solution.json
+                objective_metrics.json
+                patch.diff
+                exposed_files.json
     """
 
     def __init__(self, base_path: Path):
@@ -33,11 +38,11 @@ class SolutionStorage:
         Creates:
             issue.json
             solution.json - Trajectory
+            objective_metrics.json - Objective generation metrics
             patch.diff - Git diff of the solution
             exposed_files.json - Files the agent read during execution
         """
-        folder_name = self._make_folder_name(solution)
-        folder_path = self.base_path / folder_name
+        folder_path = self._make_folder_path(solution)
         folder_path.mkdir(parents=True, exist_ok=True)
 
         issue_path = folder_path / "issue.json"
@@ -46,9 +51,18 @@ class SolutionStorage:
         )
 
         solution_path = folder_path / "solution.json"
+        solution_data = asdict(solution)
+        objective_metrics = solution_data.pop("objective_metrics", None)
         self._atomic_write(
-            solution_path, json.dumps(asdict(solution), indent=2, ensure_ascii=False)
+            solution_path, json.dumps(solution_data, indent=2, ensure_ascii=False)
         )
+
+        if objective_metrics is not None:
+            metrics_path = folder_path / "objective_metrics.json"
+            self._atomic_write(
+                metrics_path,
+                json.dumps(objective_metrics, indent=2, ensure_ascii=False),
+            )
 
         if solution.diff:
             diff_path = folder_path / "patch.diff"
@@ -69,11 +83,40 @@ class SolutionStorage:
             f.write(content)
         temp_path.replace(path)
 
-    def _sanitize(self, value: str) -> str:
+    @staticmethod
+    def _sanitize(value: str) -> str:
         return re.sub(r"[^A-Za-z0-9_.-]", "_", value)
 
-    def _make_folder_name(self, solution: Solution) -> str:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    def _make_folder_path(self, solution: Solution) -> Path:
+        run_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         safe_id = self._sanitize(solution.issue_id)
         safe_model = self._sanitize(solution.model)
-        return f"{timestamp}_{safe_id}_{safe_model}"
+        return self.base_path / safe_id / safe_model / run_id
+
+
+def iter_solution_paths(
+    solutions_dir: Path,
+    issue_id: str | None = None,
+) -> list[Path]:
+    """Return solution run directories under the issue/model/run tree."""
+    root = solutions_dir / issue_id if issue_id else solutions_dir
+    if not root.exists():
+        return []
+    return sorted(path.parent for path in root.rglob("solution.json"))
+
+
+def solution_id_from_run_dir(run_dir: Path) -> str:
+    """Return the stable solution id for an issue/model/run directory."""
+    if run_dir.name == "solution.json":
+        raise ValueError(
+            "solution_id_from_run_dir expects a run directory, not solution.json"
+        )
+    return f"{run_dir.parent.name}__{run_dir.name}"
+
+
+def solution_id_from_path(solution_path: Path) -> str:
+    """Compatibility wrapper for run-directory inputs.
+
+    Prefer solution_id_from_run_dir() in new code.
+    """
+    return solution_id_from_run_dir(solution_path)

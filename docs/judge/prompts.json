@@ -1,18 +1,69 @@
 {
     "characteristics": ["intent", "correctness", "scope", "quality"],
-    "exposure_context_version": {
-        "V1": "V1",
-        "V2.0": "V2",
-        "V2.1": "V2"
+    "characteristic_paths": {
+        "intent": "./characteristics/intent",
+        "correctness": "./characteristics/correctness",
+        "scope": "./characteristics/scope",
+        "quality": "./characteristics/quality"
     },
-    "available_prompts": {
+    "characteristic_files": {
+        "name": "NAME.md",
+        "short_description": "SHORT.md",
+        "long_description": "LONG.md",
+        "scoring_basis": "SCORING_BASIS.md",
+        "scoring_steps_v1": "SCORING_STEPS_V1.md",
+        "scoring_steps_v2": "SCORING_STEPS_V2.md",
+        "ranking_basis": "RANKING_BASIS.md",
+        "ranking_steps_v1": "RANKING_STEPS_V1.md",
+        "ranking_steps_v2": "RANKING_STEPS_V2.md"
+    },
+    "characteristic_placeholders": {
+        "CHARACTERISTIC_NAME.md": "name",
+        "CHARACTERISTIC_SHORT.md": "short_description",
+        "CHARACTERISTIC_LONG.md": "long_description",
+        "CHARACTERISTIC_SCORING_BASIS.md": "scoring_basis",
+        "CHARACTERISTIC_SCORING_STEPS_V1.md": "scoring_steps_v1",
+        "CHARACTERISTIC_SCORING_STEPS_V2.md": "scoring_steps_v2",
+        "CHARACTERISTIC_RANKING_BASIS.md": "ranking_basis",
+        "CHARACTERISTIC_RANKING_STEPS_V1.md": "ranking_steps_v1",
+        "CHARACTERISTIC_RANKING_STEPS_V2.md": "ranking_steps_v2"
+    },
+    "prompts": {
         "scoring": {
-            "all": ["V1", "V2.0", "V2.1"],
-            "single": ["V1", "V2.0", "V2.1"]
+            "all": {
+                "V1": "./prompts/scoring/all/V1.md",
+                "V2.0": "./prompts/scoring/all/V2.0.md",
+                "V2.1": "./prompts/scoring/all/V2.1.md"
+            },
+            "single": {
+                "V1": "./prompts/scoring/single/V1.md",
+                "V2.0": "./prompts/scoring/single/V2.0.md",
+                "V2.1": "./prompts/scoring/single/V2.1.md"
+            }
         },
         "ranking": {
-            "all": ["V1", "V2.0", "V2.1"],
-            "single": ["V1", "V2.0", "V2.1"]
+            "all": {
+                "V1": "./prompts/ranking/all/V1.md",
+                "V2.0": "./prompts/ranking/all/V2.0.md",
+                "V2.1": "./prompts/ranking/all/V2.1.md"
+            },
+            "single": {
+                "V1": "./prompts/ranking/single/V1.md",
+                "V2.0": "./prompts/ranking/single/V2.0.md",
+                "V2.1": "./prompts/ranking/single/V2.1.md"
+            }
+        }
+    },
+    "contexts": {
+        "scoring": {
+            "V1": "./context/scoring/V1.md",
+            "V2.0": "./context/scoring/V2.md",
+            "V2.1": "./context/scoring/V2.md"
+        },
+        "ranking": {
+            "V1": "./context/ranking/V1.md",
+            "V2.0": "./context/ranking/V2.md",
+            "V2.1": "./context/ranking/V2.md"
         }
     }
 }

@@ -5,6 +5,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Callable
 
+from langdetect import LangDetectException, detect
+
 from .models import CollectedIssue
 
 logger = logging.getLogger(__name__)
@@ -83,9 +85,10 @@ class FilterStats:
         self.filter_counts[filter_name] = self.filter_counts.get(filter_name, 0) + 1
 
     def summary(self) -> str:
+        passed_pct = 100 * self.total_passed / max(1, self.total_processed)
         lines = [
             f"Processed: {self.total_processed}",
-            f"Passed: {self.total_passed} ({100 * self.total_passed / max(1, self.total_processed):.1f}%)",
+            f"Passed: {self.total_passed} ({passed_pct:.1f}%)",
             "Filtered out by:",
         ]
         for name, count in sorted(self.filter_counts.items(), key=lambda x: -x[1]):
@@ -233,12 +236,6 @@ class IssueFilter:
 
     def _filter_is_english(self, issue: CollectedIssue) -> FilterResult:
         """Check that issue is in English."""
-        try:
-            from langdetect import detect, LangDetectException
-        except ImportError:
-            logger.warning("langdetect not installed, skipping language check")
-            return FilterResult(True)
-
         text = f"{issue.title} {issue.body}"
         if len(text) < 50:
             # Too short to reliably detect

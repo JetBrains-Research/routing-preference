@@ -19,7 +19,8 @@ Additionally, **Comparative Ranking** can rank all solutions for an issue agains
 | **Scope** | Whether the solution stays within the boundaries of what the issue requested |
 | **Quality** | Readability, maintainability, documentation, and adherence to coding conventions |
 
-Characteristic definitions and scoring rubrics are loaded from `docs/judge/characteristics/`.
+Characteristic definitions and scoring rubrics are Markdown files registered in
+`docs/judge/prompts.json`.
 
 ## Usage
 
@@ -68,20 +69,24 @@ The judge sees only the diff, not the full agent trajectory.
 
 ## Prompt Templates
 
-Prompts are organized in `docs/judge/prompts/` by type:
+Prompts and judge document fragments are registered in `docs/judge/prompts.json`.
+The Markdown files stay under `docs/judge/` so they remain readable and easy to
+diff, but code should resolve them through the JSON registry rather than through
+hardcoded path conventions.
 
 ```
 docs/judge/
   prompts.json               # Configuration and version mappings
   prompts/
-    single/                  # One characteristic per call
-      V1.md
-      V2.0.md
-      V2.1.md
-    batch/                   # All characteristics in one call
-      V1.md
-    ranking/                 # Comparative ranking
-      V1.md
+    scoring/
+      all/
+      single/
+    ranking/
+      all/
+      single/
+  context/
+    scoring/
+    ranking/
   characteristics/
     intent/
     correctness/
@@ -92,34 +97,68 @@ docs/judge/
 Configuration in `prompts.json`:
 ```json
 {
-  "prompts": { "single": { "V1": "./prompts/single/V1.md", ... } },
-  "characteristics": { "intent": "./characteristics/intent/", ... },
-  "defaults": { "single": "V2.1", "batch": "V1", "ranking": "V1" }
+  "characteristics": ["intent", "correctness", "scope", "quality"],
+  "characteristic_paths": {
+    "intent": "./characteristics/intent"
+  },
+  "characteristic_files": {
+    "name": "NAME.md",
+    "scoring_basis": "SCORING_BASIS.md"
+  },
+  "prompts": {
+    "scoring": {
+      "all": {
+        "V1": "./prompts/scoring/all/V1.md"
+      }
+    }
+  },
+  "contexts": {
+    "scoring": {
+      "V1": "./context/scoring/V1.md"
+    }
+  }
 }
 ```
 
-Templates use placeholders like `<CHARACTERISTIC_NAME.md>` that are replaced with content from the characteristic files.
+Templates use placeholders like `<CHARACTERISTIC_NAME.md>` that are replaced
+with content from the registered characteristic files.
 
-## Output
+## Output Layout
 
-### Absolute Scoring
+Judge outputs are stored issue-first because the issue is the shared unit across
+the seven solutions, scoring judgments, ranking judgments, manual scores, and
+comparison results.
 
-Saved as `judgment.json` alongside each solution:
+The judge run id is:
+
+```text
+<judge_model_slug>__<exposure>_<all|characteristic>
+```
+
+For example:
+
+```text
+openai_gpt-4o__V1_all
+openai_gpt-4o__V2.1_intent
+```
+
+### Scoring
+
+Scoring is saved per issue, per judge run, per solution:
 
 ```
-data/solutions/
-  20260325_125319_sympy__sympy-11400_openai_gpt-4o-mini/
-    issue.json
-    solution.json
-    patch.diff
-    judgment.json
+data/judgments/
+  sympy__sympy-11400/
+    scoring/
+      openai_gpt-4o__V1_all/
+        openai_gpt-4o-mini__20260325_125319_123456.json
 ```
 
 Example:
 
 ```json
 {
-  "solution_folder": "20260325_..._openai_gpt-4o-mini",
+  "solution_folder": "openai_gpt-4o-mini__20260325_125319_123456",
   "issue_id": "sympy__sympy-11400",
   "solution_model": "openai/gpt-4o-mini",
   "judge_model": "openai/gpt-4o",
@@ -131,36 +170,49 @@ Example:
   ],
   "overall_score": 4.0,
   "created_at": "2026-03-25T23:31:29",
-  "prompt_version": "V1",
+  "exposure": "V1",
+  "basis": "scoring",
+  "granularity": "all",
+  "characteristic_id": null,
   "score_scale": [1, 5]
 }
 ```
 
-### Comparative Ranking
+### Ranking
 
-Saved per issue in `data/rankings/`:
+Ranking is saved per issue and judge run:
 
 ```
-data/rankings/
-  sympy__sympy-11400.json
+data/judgments/
+  sympy__sympy-11400/
+    ranking/
+      sympy__sympy-11400/
+        openai_gpt-4o__V1_all.json
 ```
 
 Example:
 
 ```json
 {
+  "group_id": "sympy__sympy-11400",
   "issue_id": "sympy__sympy-11400",
-  "solution_models": ["openai/gpt-4o-mini", "openai/gpt-4o", "anthropic/claude-sonnet-4"],
+  "solution_ids": ["solution-a", "solution-b", "solution-c"],
   "judge_model": "openai/gpt-4o",
   "rankings": [
     {
       "characteristic_id": "correctness",
-      "ranks": {"openai/gpt-4o": 1, "anthropic/claude-sonnet-4": 2, "openai/gpt-4o-mini": 3},
-      "reasoning": "..."
+      "rankings": [
+        {"rank": 1, "solution_id": "solution-a"},
+        {"rank": 2, "solution_id": "solution-b"},
+        {"rank": 3, "solution_id": "solution-c"}
+      ]
     }
   ],
-  "overall_ranks": {"openai/gpt-4o": 1.5, "anthropic/claude-sonnet-4": 2.0, "openai/gpt-4o-mini": 2.5},
-  "created_at": "2026-03-25T23:45:00"
+  "created_at": "2026-03-25T23:45:00",
+  "exposure": "V1",
+  "basis": "ranking",
+  "granularity": "all",
+  "characteristic_id": null
 }
 ```
 

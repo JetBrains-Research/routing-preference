@@ -72,6 +72,11 @@ class CollectedIssue:
         if not self.collected_at:
             self.collected_at = datetime.now().isoformat()
 
+    @property
+    def issue_id(self) -> str:
+        """Compatibility alias used by the generation dataset schema."""
+        return self.id
+
     @classmethod
     def from_github_issue(cls, repo: str, issue: dict) -> "CollectedIssue":
         """Create a CollectedIssue from GitHub API response."""
