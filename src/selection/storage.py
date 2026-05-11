@@ -357,8 +357,12 @@ def _load_objective_metrics(solution_folder: Path, solution: dict) -> dict[str, 
     return {
         key: float(value)
         for key, value in metrics.items()
-        if isinstance(value, int | float)
+        if _is_numeric_metric(value)
     }
+
+
+def _is_numeric_metric(value: object) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool)
 
 
 def _load_json(path: Path) -> dict:
