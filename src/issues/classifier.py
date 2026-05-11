@@ -166,16 +166,13 @@ Respond with ONLY one word: BUG, FEATURE, or OTHER."""
             issue.issue_type_confidence = confidence
             return issue
 
-        # Fall back to LLM if enabled
+        # Fall back to LLM if enabled. Otherwise leave the dataclass defaults
+        # (OTHER / UNKNOWN / 0.0) untouched.
         if use_llm_fallback:
             issue_type, confidence = self.classify_type_with_llm(issue)
             issue.issue_type = issue_type
             issue.issue_type_source = TypeSource.LLM
             issue.issue_type_confidence = confidence
-        else:
-            issue.issue_type = IssueType.OTHER
-            issue.issue_type_source = TypeSource.UNKNOWN
-            issue.issue_type_confidence = 0.0
 
         return issue
 

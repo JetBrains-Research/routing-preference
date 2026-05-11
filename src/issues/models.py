@@ -60,9 +60,11 @@ class CollectedIssue:
     # For mini-swe-agent
     base_commit: str | None = None
 
-    # Reviewer assignment
+    # Vestigial fields from the dormant reviewer-assignment flow.
+    # Kept on the dataclass so existing JSON files in data/issues/ continue
+    # to deserialize via CollectedIssue(**data). Always None on new collections.
     assigned_reviewer: str | None = None
-    reviewer_type: str | None = None  # maintainer/author
+    reviewer_type: str | None = None
 
     # Metadata
     collected_at: str = ""
@@ -102,47 +104,3 @@ class CollectedIssue:
         )
 
 
-@dataclass
-class Reviewer:
-    """A maintainer who can review solutions."""
-
-    github_username: str
-    repos: list[str] = field(default_factory=list)
-    email: str | None = None
-    consent_given: bool = False
-    max_reviews: int = 10
-    assigned_issues: list[str] = field(default_factory=list)
-
-    @property
-    def available_capacity(self) -> int:
-        """Number of additional reviews this reviewer can accept."""
-        return max(0, self.max_reviews - len(self.assigned_issues))
-
-
-@dataclass
-class Repository:
-    """A GitHub repository to collect issues from."""
-
-    owner: str
-    name: str
-    stars: int = 0
-    language: str = ""
-    open_issues_count: int = 0
-    last_commit_date: str | None = None
-    is_active: bool = True
-    maintainers: list[str] = field(default_factory=list)
-
-    @property
-    def full_name(self) -> str:
-        return f"{self.owner}/{self.name}"
-
-    @classmethod
-    def from_github_repo(cls, repo: dict) -> "Repository":
-        """Create a Repository from GitHub API response."""
-        return cls(
-            owner=repo["owner"]["login"],
-            name=repo["name"],
-            stars=repo.get("stargazers_count", 0),
-            language=repo.get("language") or "",
-            open_issues_count=repo.get("open_issues_count", 0),
-        )

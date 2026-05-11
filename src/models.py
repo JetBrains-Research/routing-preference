@@ -15,8 +15,6 @@ class Issue:
     number: int
     title: str
     body: str
-    assigned_reviewer: str | None = None
-    reviewer_type: str | None = None  # maintainer/author
 
     # Optional
     labels: list[str] = field(default_factory=list)
