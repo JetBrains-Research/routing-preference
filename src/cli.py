@@ -3,7 +3,7 @@
 import argparse
 import json
 import logging
-from dataclasses import replace
+from dataclasses import fields, replace
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -43,7 +43,8 @@ def _load_issue(folder: Path):
         data = json.load(f)
     if "id" in data and "issue_id" not in data:
         data["issue_id"] = data.pop("id")
-    return Issue(**data)
+    valid_fields = {field.name for field in fields(Issue)}
+    return Issue(**{key: value for key, value in data.items() if key in valid_fields})
 
 
 def _load_solution(folder: Path):
