@@ -70,9 +70,7 @@ def _gather_source_files(exposure: str, folder: Path, issue, solution):
     if not exposure.startswith("V2"):
         return None
     if not issue.base_commit:
-        raise ValueError(
-            f"V2 requires base_commit on issue {issue.issue_id}"
-        )
+        raise ValueError(f"V2 requires base_commit on issue {issue.issue_id}")
     if exposure == "V2.0":
         paths = extract_changed_files(solution.diff)
     else:
@@ -82,9 +80,6 @@ def _gather_source_files(exposure: str, folder: Path, issue, solution):
 
 def cmd_judge(args) -> None:
     """Judge solutions, scoring or ranking based on --basis."""
-    if args.granularity == "single" and not args.characteristic:
-        raise ValueError("--characteristic is required when --granularity single")
-
     if args.basis == "scoring":
         _cmd_judge_scoring(args)
     else:
@@ -101,9 +96,7 @@ def _cmd_judge_scoring(args) -> None:
     if args.solution:
         folders = [_resolve_solution_path(args.solutions_dir, args.solution)]
     elif args.force:
-        folders = [
-            folder for folder in iter_solution_paths(args.solutions_dir)
-        ]
+        folders = [folder for folder in iter_solution_paths(args.solutions_dir)]
     else:
         folders = []
         for folder in iter_solution_paths(args.solutions_dir):
@@ -115,11 +108,11 @@ def _cmd_judge_scoring(args) -> None:
                 args.model,
                 args.exposure,
                 args.granularity,
-                args.characteristic,
+                None,
             ):
                 folders.append(folder)
 
-    variant = f"{args.exposure}_{args.basis}_{args.characteristic or 'all'}"
+    variant = f"{args.exposure}_{args.basis}_{args.granularity}"
     logger.info("Scoring %d solutions in: %s", len(folders), args.solutions_dir)
     logger.info("Model: %s, Variant: %s", args.model, variant)
 
@@ -132,7 +125,6 @@ def _cmd_judge_scoring(args) -> None:
 
             if args.granularity == "single":
                 judgment = judge.score_single(
-                    args.characteristic,
                     issue,
                     solution,
                     solution_id,
@@ -203,7 +195,7 @@ def _cmd_judge_ranking(args) -> None:
         args.model,
         args.exposure,
         args.granularity,
-        args.characteristic,
+        None,
     ):
         logger.info(
             "Ranking already exists for group %s; use --force to overwrite",
@@ -211,13 +203,12 @@ def _cmd_judge_ranking(args) -> None:
         )
         return
 
-    variant = f"{args.exposure}_{args.basis}_{args.characteristic or 'all'}"
+    variant = f"{args.exposure}_{args.basis}_{args.granularity}"
     logger.info("Ranking %d solutions for group: %s", len(solution_ids), args.group)
     logger.info("Model: %s, Variant: %s", args.model, variant)
 
     if args.granularity == "single":
         judgment = judge.rank_single(
-            args.characteristic,
             issue,
             solutions,
             solution_ids,
@@ -277,9 +268,7 @@ def cmd_select(args) -> None:
     )
 
     issue_ids = (
-        [args.issue]
-        if args.issue
-        else _list_solution_issue_ids(args.solutions_dir)
+        [args.issue] if args.issue else _list_solution_issue_ids(args.solutions_dir)
     )
     storage = SelectionStorage(args.output)
     run_id = selection_source_run_id(
@@ -398,30 +387,35 @@ def main() -> None:
     # Generate
     gen_parser = subparsers.add_parser("generate", help="Generate solutions for issues")
     gen_parser.add_argument(
-        "--dataset", "-d",
+        "--dataset",
+        "-d",
         required=True,
         help="HuggingFace dataset name or path to local JSON file",
     )
     gen_parser.add_argument(
-        "--split", "-s",
+        "--split",
+        "-s",
         default="test",
         help="Dataset split to use (default: test)",
     )
     gen_parser.add_argument(
-        "--model", "-m",
+        "--model",
+        "-m",
         action="append",
         dest="models",
         default=[],
         help="Model to use in LiteLLM format",
     )
     gen_parser.add_argument(
-        "--limit", "-l",
+        "--limit",
+        "-l",
         type=int,
         default=None,
         help="Maximum number of issues to process",
     )
     gen_parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=Path,
         default=DEFAULT_SOLUTIONS_DIR,
         help=f"Output directory (default: {DEFAULT_SOLUTIONS_DIR})",
@@ -437,7 +431,8 @@ def main() -> None:
     # Judge
     judge_parser = subparsers.add_parser("judge", help="Judge solutions")
     judge_parser.add_argument(
-        "--solutions-dir", "-s",
+        "--solutions-dir",
+        "-s",
         type=Path,
         default=DEFAULT_SOLUTIONS_DIR,
         help=f"Directory containing solutions (default: {DEFAULT_SOLUTIONS_DIR})",
@@ -449,7 +444,8 @@ def main() -> None:
         help=f"Directory for judge outputs (default: {DEFAULT_JUDGMENTS_DIR})",
     )
     judge_parser.add_argument(
-        "--model", "-m",
+        "--model",
+        "-m",
         default="openai/gpt-4o",
         help="Model to use for judging (default: openai/gpt-4o)",
     )
@@ -472,7 +468,8 @@ def main() -> None:
         help="Group identifier for a ranking (required when --basis ranking)",
     )
     judge_parser.add_argument(
-        "--force", "-f",
+        "--force",
+        "-f",
         action="store_true",
         help="Re-run even if this judgment variant already exists",
     )
@@ -495,12 +492,8 @@ def main() -> None:
         help="Judge all characteristics at once or one at a time",
     )
     judge_parser.add_argument(
-        "--characteristic",
-        choices=CHARACTERISTICS,
-        help="Characteristic to judge (required when --granularity single)",
-    )
-    judge_parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Enable verbose logging",
     )
@@ -512,13 +505,15 @@ def main() -> None:
         help="Select answer pairs for the survey",
     )
     select_parser.add_argument(
-        "--solutions-dir", "-s",
+        "--solutions-dir",
+        "-s",
         type=Path,
         default=DEFAULT_SOLUTIONS_DIR,
         help=f"Directory containing solutions (default: {DEFAULT_SOLUTIONS_DIR})",
     )
     select_parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=Path,
         default=DEFAULT_SELECTIONS_DIR,
         help=f"Output directory for selected pairs (default: {DEFAULT_SELECTIONS_DIR})",
@@ -586,8 +581,7 @@ def main() -> None:
         choices=["greedy", "cpsat"],
         default="greedy",
         help=(
-            "Global selection backend to use with --global-balanced "
-            "(default: greedy)"
+            "Global selection backend to use with --global-balanced (default: greedy)"
         ),
     )
     select_parser.add_argument(
@@ -598,7 +592,8 @@ def main() -> None:
         ),
     )
     select_parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Enable verbose logging",
     )

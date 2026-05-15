@@ -21,8 +21,9 @@ def judgment_variant(
     characteristic_id: str | None,
 ) -> str:
     """Build the prompt/exposure variant suffix."""
-    suffix = characteristic_id if granularity == "single" else "all"
-    return f"{exposure}_{suffix}"
+    if granularity not in {"all", "single"}:
+        raise ValueError(f"Unknown judgment granularity: {granularity}")
+    return f"{exposure}_{granularity}"
 
 
 def slugify_judge_model(judge_model: str) -> str:
@@ -50,6 +51,44 @@ def judge_run_id(
             judgment_variant(exposure, granularity, characteristic_id),
         ]
     )
+
+
+def parse_judge_run_id(
+    run_id: str,
+    characteristic_ids: list[str] | tuple[str, ...],
+) -> dict[str, str | None]:
+    """Parse a run id created by `judge_run_id`.
+
+    Returns filesystem slugs, not the original unslugged judge model.
+    """
+    try:
+        judge_slug, variant = run_id.rsplit("__", 1)
+        exposure, suffix = variant.rsplit("_", 1)
+    except ValueError as exc:
+        raise ValueError(f"Not a recognized judge run id: {run_id}") from exc
+
+    if suffix == "all":
+        return {
+            "judge_slug": judge_slug,
+            "exposure": exposure,
+            "granularity": "all",
+            "characteristic_id": None,
+        }
+    if suffix == "single":
+        return {
+            "judge_slug": judge_slug,
+            "exposure": exposure,
+            "granularity": "single",
+            "characteristic_id": None,
+        }
+    if suffix in characteristic_ids:
+        return {
+            "judge_slug": judge_slug,
+            "exposure": exposure,
+            "granularity": "single",
+            "characteristic_id": suffix,
+        }
+    raise ValueError(f"Not a recognized judge run id: {run_id}")
 
 
 def _atomic_write(path: Path, content: str) -> None:
