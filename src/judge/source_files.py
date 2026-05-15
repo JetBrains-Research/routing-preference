@@ -76,4 +76,8 @@ def fetch_source_files(
 
 
 def _should_skip_path(path: str) -> bool:
-    return not path or path.endswith("/")
+    if not path:
+        return True
+    path = path.rstrip("/")
+    parts = path.split("/")
+    return any(part in {"", ".", ".."} for part in parts)

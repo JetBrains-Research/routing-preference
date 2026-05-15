@@ -22,6 +22,7 @@ class SolutionStorage:
                 objective_metrics.json
                 patch.diff
                 exposed_files.json
+                grep_exposed_files.json
     """
 
     def __init__(self, base_path: Path):
@@ -33,6 +34,7 @@ class SolutionStorage:
         solution: Solution,
         issue: Issue,
         exposed_files: list[str] | None = None,
+        grep_exposed_files: list[str] | None = None,
     ) -> Path:
         """
         Creates:
@@ -40,7 +42,8 @@ class SolutionStorage:
             solution.json - Trajectory
             objective_metrics.json - Objective generation metrics
             patch.diff - Git diff of the solution
-            exposed_files.json - Files the agent read during execution
+            exposed_files.json - Files the agent fully read during execution
+            grep_exposed_files.json - Files exposed as grep/search snippets
         """
         folder_path = self._make_folder_path(solution)
         folder_path.mkdir(parents=True, exist_ok=True)
@@ -72,6 +75,12 @@ class SolutionStorage:
         self._atomic_write(
             exposed_path,
             json.dumps(exposed_files or [], indent=2, ensure_ascii=False),
+        )
+
+        grep_exposed_path = folder_path / "grep_exposed_files.json"
+        self._atomic_write(
+            grep_exposed_path,
+            json.dumps(grep_exposed_files or [], indent=2, ensure_ascii=False),
         )
 
         return folder_path
