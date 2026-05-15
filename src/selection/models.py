@@ -29,7 +29,6 @@ class SelectedPair:
     judge_model: str
     judge_exposure: str
     judge_granularity: str = "all"
-    judge_characteristic: str | None = None
 
     @classmethod
     def from_candidate(
@@ -41,7 +40,6 @@ class SelectedPair:
         judge_model: str,
         judge_exposure: str,
         judge_granularity: str = "all",
-        judge_characteristic: str | None = None,
     ) -> "SelectedPair":
         return cls(
             issue_id=issue_id,
@@ -54,7 +52,6 @@ class SelectedPair:
             judge_model=judge_model,
             judge_exposure=judge_exposure,
             judge_granularity=judge_granularity,
-            judge_characteristic=judge_characteristic,
         )
 
 

@@ -8,9 +8,8 @@ from pathlib import Path
 from src.evaluation.models import (
     EvaluationDataset,
     EvaluationSolution,
-    JudgeScoreSet,
-    ManualScoreSet,
-    ScoringRunGroup,
+    ScoreSet,
+    ScoringRun,
 )
 from src.judge.loader import CharacteristicLoader
 from src.judge.storage import parse_judge_run_id
@@ -30,10 +29,10 @@ def load_scoring_evaluation(
     - every issue in `solutions_dir` must have a manual scoring folder
     - every (issue,solution) must have exactly one manual scoring file
     - every requested judge run must have the needed scoring files
-    - single-characteristic folders must be unique per exposure and granularity
+    - every requested judge run folder must contain all characteristics in one JSON
     """
     characteristics = characteristics or default_characteristics()
-    run_groups = resolve_scoring_runs(
+    scoring_runs = resolve_scoring_runs(
         judgments_dir=judgments_dir,
         judge_folders=judge_folders,
         characteristics=characteristics,
@@ -61,14 +60,14 @@ def load_scoring_evaluation(
                 characteristics=characteristics,
             )
             judge_scores = {
-                run_group.id: _load_judge_score_set(
+                scoring_run.id: _load_judge_score_set(
                     judgments_dir=judgments_dir,
                     issue_id=issue_id,
                     solution_id=solution_id,
-                    run_group=run_group,
+                    scoring_run=scoring_run,
                     characteristics=characteristics,
                 )
-                for run_group in run_groups
+                for scoring_run in scoring_runs
             }
             solutions.append(
                 EvaluationSolution(
@@ -90,72 +89,33 @@ def resolve_scoring_runs(
     judgments_dir: Path,
     judge_folders: list[Path | str],
     characteristics: tuple[str, ...] | None = None,
-) -> list[ScoringRunGroup]:
-    """Resolve requested scoring run folders into all/single (granularity) groups."""
+) -> list[ScoringRun]:
+    """Resolve requested scoring run folders."""
     characteristics = characteristics or default_characteristics()
     folder_names = _requested_folder_names(judgments_dir, judge_folders)
-    all_groups: dict[tuple[str, str], str] = {}
-    single_groups: dict[tuple[str, str], dict[str, list[str]]] = {}
+    scoring_runs = {}
 
     for folder_name in folder_names:
         parsed = _parse_run_folder(folder_name, characteristics)
-        key = (parsed["judge_slug"], parsed["exposure"])
-        characteristic_id = parsed["characteristic_id"]
-        if parsed["granularity"] == "all":
-            if key in all_groups:
-                raise ValueError(
-                    "Multiple all-at-once folders were requested for "
-                    f"{parsed['judge_slug']} {parsed['exposure']}: "
-                    f"{all_groups[key]}, {folder_name}"
-                )
-            all_groups[key] = folder_name
-        else:
-            if characteristic_id is None:
-                raise ValueError(
-                    f"Missing characteristic in judge run id: {folder_name}"
-                )
-            single_groups.setdefault(key, {}).setdefault(characteristic_id, []).append(
-                folder_name
+        if parsed["characteristic_id"] is not None:
+            raise ValueError(
+                "Legacy per-characteristic scoring folders are no longer supported: "
+                f"{folder_name}. Use the combined _single folder instead."
             )
-
-    run_groups = [
-        ScoringRunGroup(
-            id=f"{judge_slug}__{exposure}_all",
-            judge_slug=judge_slug,
-            exposure=exposure,
-            granularity="all",
-            folders={None: folder_name},
+        run = ScoringRun(
+            id=folder_name,
+            judge_slug=str(parsed["judge_slug"]),
+            exposure=str(parsed["exposure"]),
+            granularity=str(parsed["granularity"]),
+            folder=folder_name,
         )
-        for (judge_slug, exposure), folder_name in sorted(all_groups.items())
-    ]
-
-    for (judge_slug, exposure), by_characteristic in sorted(single_groups.items()):
-        folders = {}
-        for characteristic in characteristics:
-            matches = by_characteristic.get(characteristic, [])
-            if len(matches) > 1:
-                raise ValueError(
-                    "Multiple single-characteristic folders were requested for "
-                    f"{judge_slug} {exposure} {characteristic}; "
-                    f"I do not know which one is which: {matches}"
-                )
-            if not matches:
-                raise ValueError(
-                    "Missing single-characteristic folder for "
-                    f"{judge_slug} {exposure} {characteristic}"
-                )
-            folders[characteristic] = matches[0]
-        run_groups.append(
-            ScoringRunGroup(
-                id=f"{judge_slug}__{exposure}_single",
-                judge_slug=judge_slug,
-                exposure=exposure,
-                granularity="single",
-                folders=folders,
+        if run.id in scoring_runs:
+            raise ValueError(
+                f"Multiple scoring folders resolved to the same run id: {run.id}"
             )
-        )
+        scoring_runs[run.id] = run
 
-    return run_groups
+    return [scoring_runs[run_id] for run_id in sorted(scoring_runs)]
 
 
 def _solution_issue_ids(solutions_dir: Path) -> list[str]:
@@ -170,11 +130,20 @@ def _requested_folder_names(
     judgments_dir: Path, judge_folders: list[Path | str]
 ) -> list[str]:
     folder_names = []
+    if not judge_folders:
+        for scoring_dir in sorted(judgments_dir.glob("*/scoring")):
+            folder_names.extend(
+                child.name
+                for child in scoring_dir.iterdir()
+                if child.is_dir() and child.name != "manual"
+            )
     for folder in judge_folders:
         path = Path(folder)
         if not path.is_absolute():
             path = judgments_dir / path
         if path.name == "scoring":
+            if not path.exists():
+                raise ValueError(f"Scoring folder does not exist: {path}")
             folder_names.extend(
                 child.name
                 for child in path.iterdir()
@@ -212,7 +181,7 @@ def _load_manual_score(
     solution_path: Path,
     solution_id: str,
     characteristics: tuple[str, ...],
-) -> tuple[ManualScoreSet, str, bool]:
+) -> tuple[ScoreSet, str, bool]:
     model_slug = solution_path.parent.name
     candidates = [
         path
@@ -239,7 +208,7 @@ def _load_manual_score(
         expected_characteristics=characteristics,
     )
     return (
-        ManualScoreSet(
+        ScoreSet(
             scores=scores,
             overall_score=float(data["overall_score"]),
             path=candidates[0],
@@ -254,61 +223,27 @@ def _load_judge_score_set(
     judgments_dir: Path,
     issue_id: str,
     solution_id: str,
-    run_group: ScoringRunGroup,
+    scoring_run: ScoringRun,
     characteristics: tuple[str, ...],
-) -> JudgeScoreSet:
-    if run_group.granularity == "all":
-        path = (
-            judgments_dir
-            / issue_id
-            / "scoring"
-            / run_group.folders[None]
-            / f"{solution_id}.json"
-        )
-        if not path.exists():
-            raise ValueError(f"Missing judge scoring file: {path}")
-        data = _load_json(path)
-        return JudgeScoreSet(
-            run_group_id=run_group.id,
-            judge_slug=run_group.judge_slug,
-            exposure=run_group.exposure,
-            granularity=run_group.granularity,
-            scores=_scores_by_characteristic(
-                data, path=path, expected_characteristics=characteristics
-            ),
-            overall_score=float(data["overall_score"]),
-            paths={None: path},
-        )
-
-    scores = {}
-    paths = {}
-    for characteristic in characteristics:
-        path = (
-            judgments_dir
-            / issue_id
-            / "scoring"
-            / run_group.folders[characteristic]
-            / f"{solution_id}.json"
-        )
-        if not path.exists():
-            raise ValueError(f"Missing judge scoring file: {path}")
-        data = _load_json(path)
-        characteristic_scores = _scores_by_characteristic(
+) -> ScoreSet:
+    path = (
+        judgments_dir
+        / issue_id
+        / "scoring"
+        / scoring_run.folder
+        / f"{solution_id}.json"
+    )
+    if not path.exists():
+        raise ValueError(f"Missing judge scoring file: {path}")
+    data = _load_json(path)
+    return ScoreSet(
+        scores=_scores_by_characteristic(
             data,
             path=path,
-            expected_characteristics=(characteristic,),
-        )
-        scores[characteristic] = characteristic_scores[characteristic]
-        paths[characteristic] = path
-
-    return JudgeScoreSet(
-        run_group_id=run_group.id,
-        judge_slug=run_group.judge_slug,
-        exposure=run_group.exposure,
-        granularity=run_group.granularity,
-        scores=scores,
-        overall_score=sum(scores.values()) / len(scores),
-        paths=paths,
+            expected_characteristics=characteristics,
+        ),
+        overall_score=float(data["overall_score"]),
+        path=path,
     )
 
 

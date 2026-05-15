@@ -26,12 +26,8 @@ def load_scored_solutions(
     judge_model: str,
     exposure: str,
     granularity: str = "all",
-    characteristic_id: str | None = None,
 ) -> list[ScoredSolution]:
     """Load scored solutions for one issue from central judge outputs."""
-    if granularity == "single" and not characteristic_id:
-        raise ValueError("characteristic_id is required for single-granularity scoring")
-
     scored = []
 
     for folder in iter_solution_paths(solutions_dir, issue_id=issue_id):
@@ -44,7 +40,6 @@ def load_scored_solutions(
             judge_model=judge_model,
             exposure=exposure,
             granularity=granularity,
-            characteristic_id=characteristic_id,
         )
         if judgment is None:
             continue
@@ -212,7 +207,6 @@ def selection_run_id(selected_pair: SelectedPair) -> str:
         selected_pair.judge_model,
         selected_pair.judge_exposure,
         selected_pair.judge_granularity,
-        selected_pair.judge_characteristic,
     )
 
 
@@ -221,15 +215,13 @@ def selection_source_run_id(
     judge_model: str,
     exposure: str,
     granularity: str = "all",
-    characteristic: str | None = None,
 ) -> str:
     """Build the run id before a SelectedPair object exists."""
-    characteristic_id = characteristic if granularity == "single" else "all"
     return "__".join(
         [
             selection_source,
             slugify_judge_model(judge_model),
-            f"{exposure}_{characteristic_id}",
+            f"{exposure}_{granularity}",
         ]
     )
 
@@ -332,13 +324,12 @@ def _load_scoring_judgment(
     judge_model: str,
     exposure: str,
     granularity: str,
-    characteristic_id: str | None,
 ) -> dict | None:
     path = (
         judgments_dir
         / issue_id
         / "scoring"
-        / judge_run_id(judge_model, exposure, granularity, characteristic_id)
+        / judge_run_id(judge_model, exposure, granularity, None)
         / f"{solution_id}.json"
     )
     if not path.exists():
