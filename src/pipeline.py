@@ -51,8 +51,12 @@ class Pipeline:
                 extra={"issue_id": issue.issue_id, "model": model},
             )
             try:
-                solution, exposed_files = self.generator.generate(issue, model)
-                path = self.storage.save(solution, issue, exposed_files)
+                solution, exposed_files, grep_exposed_files = self.generator.generate(
+                    issue, model
+                )
+                path = self.storage.save(
+                    solution, issue, exposed_files, grep_exposed_files
+                )
                 logger.info(
                     "Saved solution to %s (%dms)",
                     path.name,
