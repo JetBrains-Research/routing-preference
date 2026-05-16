@@ -125,6 +125,18 @@ def write_scoring_characteristic_comparison_csvs(
             writer.writeheader()
             writer.writerows(characteristic_rows)
         paths[characteristic] = path
+    overall_path = output_dir / "overall_comparison.csv"
+    overall_rows = summarize_overall_rows(
+        rows=rows,
+        characteristics=characteristics,
+        bootstrap_samples=bootstrap_samples,
+        bootstrap_seed=bootstrap_seed,
+    )
+    with open(overall_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=CHARACTERISTIC_CSV_COLUMNS)
+        writer.writeheader()
+        writer.writerows(overall_rows)
+    paths["overall"] = overall_path
     return paths
 
 
@@ -179,6 +191,39 @@ def summarize_characteristic_rows(
             }
         )
     return summaries
+
+
+def summarize_overall_rows(
+    *,
+    rows: list[dict],
+    characteristics: tuple[str, ...],
+    bootstrap_samples: int = 5000,
+    bootstrap_seed: int = 0,
+) -> list[dict]:
+    """Summarize judge performance across all subjective characteristics."""
+    characteristic_summaries = {}
+    for characteristic in characteristics:
+        for summary in summarize_characteristic_rows(
+            rows=[row for row in rows if row["characteristic"] == characteristic],
+            bootstrap_samples=bootstrap_samples,
+            bootstrap_seed=bootstrap_seed,
+        ):
+            characteristic_summaries.setdefault(summary["judge_run_id"], []).append(
+                summary
+            )
+
+    overall_rows = []
+    for summary in summarize_characteristic_rows(
+        rows=rows,
+        bootstrap_samples=bootstrap_samples,
+        bootstrap_seed=f"{bootstrap_seed}:overall",
+    ):
+        per_characteristic = characteristic_summaries.get(summary["judge_run_id"], [])
+        summary["macro_f1"] = _mean(
+            [float(row["macro_f1"]) for row in per_characteristic]
+        )
+        overall_rows.append(summary)
+    return overall_rows
 
 
 def _cluster_bootstrap_mae_ci(
