@@ -56,7 +56,6 @@ class Judge:
             exposure=self.exposure,
             basis="scoring",
             granularity="all",
-            characteristic_id=None,
             score_scale=(1, 5),
             empty_solution=not solution.diff.strip(),
         )
@@ -94,7 +93,6 @@ class Judge:
             exposure=self.exposure,
             basis="scoring",
             granularity="single",
-            characteristic_id=None,
             score_scale=(1, 5),
             empty_solution=not solution.diff.strip(),
         )
@@ -125,7 +123,6 @@ class Judge:
             solution_ids=solution_ids,
             group_id=group_id,
             granularity="all",
-            characteristic_id=None,
         )
 
     def rank_single(
@@ -161,7 +158,6 @@ class Judge:
             solution_ids=solution_ids,
             group_id=group_id,
             granularity="single",
-            characteristic_id=None,
         )
 
     def _wrap_ranking(
@@ -173,7 +169,6 @@ class Judge:
         solution_ids: list[str],
         group_id: str,
         granularity: str,
-        characteristic_id: str | None,
     ) -> RankingJudgment:
         return RankingJudgment(
             group_id=group_id,
@@ -185,6 +180,5 @@ class Judge:
             exposure=self.exposure,
             basis="ranking",
             granularity=granularity,
-            characteristic_id=characteristic_id,
             solution_models=[s.model for s in solutions],
         )

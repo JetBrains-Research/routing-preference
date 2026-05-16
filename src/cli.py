@@ -108,7 +108,6 @@ def _cmd_judge_scoring(args) -> None:
                 args.model,
                 args.exposure,
                 args.granularity,
-                None,
             ):
                 folders.append(folder)
 

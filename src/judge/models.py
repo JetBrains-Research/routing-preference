@@ -26,7 +26,6 @@ class ScoringJudgment:
     exposure: str = "V1"
     basis: str = "scoring"
     granularity: str = "all"
-    characteristic_id: str | None = None
     score_scale: tuple[int, int] | None = None
     empty_solution: bool | None = None
 
@@ -65,5 +64,4 @@ class RankingJudgment:
     exposure: str = "V1"
     basis: str = "ranking"
     granularity: str = "all"
-    characteristic_id: str | None = None
     solution_models: list[str] = field(default_factory=list)
