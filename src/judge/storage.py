@@ -2,7 +2,7 @@
 
 import json
 import re
-from dataclasses import asdict
+from dataclasses import asdict, fields
 from pathlib import Path
 from uuid import uuid4
 
@@ -14,6 +14,21 @@ from .models import (
     ScoringJudgment,
 )
 
+SCORING_JSON_KEY_ORDER = (
+    "solution_folder",
+    "issue_id",
+    "solution_model",
+    "judge_model",
+    "empty_solution",
+    "scores",
+    "overall_score",
+    "created_at",
+    "exposure",
+    "basis",
+    "granularity",
+    "score_scale",
+)
+
 
 def judgment_variant(
     exposure: str,
@@ -21,8 +36,9 @@ def judgment_variant(
     characteristic_id: str | None,
 ) -> str:
     """Build the prompt/exposure variant suffix."""
-    suffix = characteristic_id if granularity == "single" else "all"
-    return f"{exposure}_{suffix}"
+    if granularity not in {"all", "single"}:
+        raise ValueError(f"Unknown judgment granularity: {granularity}")
+    return f"{exposure}_{granularity}"
 
 
 def slugify_judge_model(judge_model: str) -> str:
@@ -52,11 +68,56 @@ def judge_run_id(
     )
 
 
+def parse_judge_run_id(
+    run_id: str,
+    characteristic_ids: list[str] | tuple[str, ...],
+) -> dict[str, str | None]:
+    """Parse a run id created by `judge_run_id`.
+
+    Returns filesystem slugs, not the original unslugged judge model.
+    """
+    try:
+        judge_slug, variant = run_id.rsplit("__", 1)
+        exposure, suffix = variant.rsplit("_", 1)
+    except ValueError as exc:
+        raise ValueError(f"Not a recognized judge run id: {run_id}") from exc
+
+    if suffix == "all":
+        return {
+            "judge_slug": judge_slug,
+            "exposure": exposure,
+            "granularity": "all",
+            "characteristic_id": None,
+        }
+    if suffix == "single":
+        return {
+            "judge_slug": judge_slug,
+            "exposure": exposure,
+            "granularity": "single",
+            "characteristic_id": None,
+        }
+    if suffix in characteristic_ids:
+        return {
+            "judge_slug": judge_slug,
+            "exposure": exposure,
+            "granularity": "single",
+            "characteristic_id": suffix,
+        }
+    raise ValueError(f"Not a recognized judge run id: {run_id}")
+
+
 def _atomic_write(path: Path, content: str) -> None:
     temp_path = path.with_name(f"{path.name}.{uuid4().hex}.tmp")
     with open(temp_path, "w", encoding="utf-8") as f:
         f.write(content)
     temp_path.replace(path)
+
+
+def _ordered_scoring_judgment_dict(judgment: ScoringJudgment) -> dict:
+    data = asdict(judgment)
+    ordered = {key: data[key] for key in SCORING_JSON_KEY_ORDER if key in data}
+    ordered.update({key: value for key, value in data.items() if key not in ordered})
+    return ordered
 
 
 class ScoringStorage:
@@ -75,12 +136,19 @@ class ScoringStorage:
                 judgment.judge_model,
                 judgment.exposure,
                 judgment.granularity,
-                judgment.characteristic_id,
+                None,
             )
         )
         run_dir.mkdir(parents=True, exist_ok=True)
         path = run_dir / f"{judgment.solution_folder}.json"
-        _atomic_write(path, json.dumps(asdict(judgment), indent=2, ensure_ascii=False))
+        _atomic_write(
+            path,
+            json.dumps(
+                _ordered_scoring_judgment_dict(judgment),
+                indent=2,
+                ensure_ascii=False,
+            ),
+        )
         return path
 
     def load(
@@ -90,19 +158,21 @@ class ScoringStorage:
         judge_model: str,
         exposure: str,
         granularity: str,
-        characteristic_id: str | None = None,
     ) -> ScoringJudgment | None:
         path = (
             self.judgments_dir
             / issue_id
             / "scoring"
-            / judge_run_id(judge_model, exposure, granularity, characteristic_id)
+            / judge_run_id(judge_model, exposure, granularity, None)
             / f"{solution_folder}.json"
         )
         if not path.exists():
             return None
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
+        # Drop fields removed from the dataclass so old files still load.
+        known = {f.name for f in fields(ScoringJudgment)}
+        data = {k: v for k, v in data.items() if k in known}
         data["scores"] = [Score(**s) for s in data["scores"]]
         if data.get("score_scale"):
             data["score_scale"] = tuple(data["score_scale"])
@@ -115,7 +185,6 @@ class ScoringStorage:
         judge_model: str,
         exposure: str,
         granularity: str,
-        characteristic_id: str | None = None,
     ) -> bool:
         return (
             self.load(
@@ -124,7 +193,6 @@ class ScoringStorage:
                 judge_model,
                 exposure,
                 granularity,
-                characteristic_id,
             )
             is not None
         )
@@ -150,7 +218,7 @@ class RankingStorage:
                 judgment.judge_model,
                 judgment.exposure,
                 judgment.granularity,
-                judgment.characteristic_id,
+                None,
             )
             + ".json"
         )
@@ -165,12 +233,8 @@ class RankingStorage:
         judge_model: str,
         exposure: str,
         granularity: str,
-        characteristic_id: str | None = None,
     ) -> RankingJudgment | None:
-        filename = (
-            judge_run_id(judge_model, exposure, granularity, characteristic_id)
-            + ".json"
-        )
+        filename = judge_run_id(judge_model, exposure, granularity, None) + ".json"
         path = (
             self.judgments_dir
             / issue_id
@@ -182,6 +246,9 @@ class RankingStorage:
             return None
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
+        # Drop fields removed from the dataclass so old files still load.
+        known = {f.name for f in fields(RankingJudgment)}
+        data = {k: v for k, v in data.items() if k in known}
         data["rankings"] = [
             CharacteristicRanking(
                 characteristic_id=cr["characteristic_id"],
@@ -198,7 +265,6 @@ class RankingStorage:
         judge_model: str,
         exposure: str,
         granularity: str,
-        characteristic_id: str | None = None,
     ) -> bool:
         return (
             self.load(
@@ -207,7 +273,6 @@ class RankingStorage:
                 judge_model,
                 exposure,
                 granularity,
-                characteristic_id,
             )
             is not None
         )

@@ -56,41 +56,45 @@ class Judge:
             exposure=self.exposure,
             basis="scoring",
             granularity="all",
-            characteristic_id=None,
             score_scale=(1, 5),
+            empty_solution=not solution.diff.strip(),
         )
 
     def score_single(
         self,
-        characteristic_id: str,
         issue: Issue,
         solution: Solution,
         solution_folder: str,
         source_files: dict[str, str] | None = None,
     ) -> ScoringJudgment:
-        """Score a solution on a single characteristic."""
-        if self.exposure == "V1":
-            score = self.scorer.score_single(characteristic_id, issue, solution)
-        else:
-            if source_files is None:
-                raise ValueError("V2 scoring requires source_files")
-            score = self.scorer.score_single(
-                characteristic_id, issue, solution, source_files
-            )
+        """Score all characteristics using one call per characteristic."""
+        scores = []
+        for characteristic_id in self.scorer.characteristic_order:
+            if self.exposure == "V1":
+                score = self.scorer.score_single(characteristic_id, issue, solution)
+            else:
+                if source_files is None:
+                    raise ValueError("V2 scoring requires source_files")
+                score = self.scorer.score_single(
+                    characteristic_id, issue, solution, source_files
+                )
+            scores.append(score)
+
+        overall = sum(s.value for s in scores) / len(scores) if scores else 0
 
         return ScoringJudgment(
             solution_folder=solution_folder,
             issue_id=solution.issue_id,
             solution_model=solution.model,
             judge_model=self.model,
-            scores=[score],
-            overall_score=float(score.value),
+            scores=scores,
+            overall_score=round(overall, 2),
             created_at=datetime.now().isoformat(),
             exposure=self.exposure,
             basis="scoring",
             granularity="single",
-            characteristic_id=characteristic_id,
             score_scale=(1, 5),
+            empty_solution=not solution.diff.strip(),
         )
 
     # Ranking
@@ -119,41 +123,41 @@ class Judge:
             solution_ids=solution_ids,
             group_id=group_id,
             granularity="all",
-            characteristic_id=None,
         )
 
     def rank_single(
         self,
-        characteristic_id: str,
         issue: Issue,
         solutions: list[Solution],
         solution_ids: list[str],
         group_id: str,
         source_files_per_solution: list[dict[str, str]] | None = None,
     ) -> RankingJudgment:
-        """Rank N solutions on a single characteristic."""
-        if self.exposure == "V1":
-            result = self.ranker.rank_single(
-                characteristic_id, issue, solutions, solution_ids
-            )
-        else:
-            if source_files_per_solution is None:
-                raise ValueError("V2 ranking requires source_files_per_solution")
-            result = self.ranker.rank_single(
-                characteristic_id,
-                issue,
-                solutions,
-                solution_ids,
-                source_files_per_solution,
-            )
+        """Rank all characteristics using one call per characteristic."""
+        results = []
+        for characteristic_id in self.ranker.characteristic_order:
+            if self.exposure == "V1":
+                result = self.ranker.rank_single(
+                    characteristic_id, issue, solutions, solution_ids
+                )
+            else:
+                if source_files_per_solution is None:
+                    raise ValueError("V2 ranking requires source_files_per_solution")
+                result = self.ranker.rank_single(
+                    characteristic_id,
+                    issue,
+                    solutions,
+                    solution_ids,
+                    source_files_per_solution,
+                )
+            results.append(result)
         return self._wrap_ranking(
-            [result],
+            results,
             issue=issue,
             solutions=solutions,
             solution_ids=solution_ids,
             group_id=group_id,
             granularity="single",
-            characteristic_id=characteristic_id,
         )
 
     def _wrap_ranking(
@@ -165,7 +169,6 @@ class Judge:
         solution_ids: list[str],
         group_id: str,
         granularity: str,
-        characteristic_id: str | None,
     ) -> RankingJudgment:
         return RankingJudgment(
             group_id=group_id,
@@ -177,6 +180,5 @@ class Judge:
             exposure=self.exposure,
             basis="ranking",
             granularity=granularity,
-            characteristic_id=characteristic_id,
             solution_models=[s.model for s in solutions],
         )

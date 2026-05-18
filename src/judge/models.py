@@ -26,8 +26,8 @@ class ScoringJudgment:
     exposure: str = "V1"
     basis: str = "scoring"
     granularity: str = "all"
-    characteristic_id: str | None = None
     score_scale: tuple[int, int] | None = None
+    empty_solution: bool | None = None
 
 
 @dataclass
@@ -51,8 +51,8 @@ class RankingJudgment:
     """Complete ranking judgment over a group of solutions.
 
     Spans multiple solutions, identified by their solution folder names.
-    For granularity="all", `rankings` contains one CharacteristicRanking per characteristic.
-    For granularity="single", it contains exactly one, matching `characteristic_id`.
+    Both granularities store one ranking per characteristic. For
+    granularity="single", those rankings are produced by separate model calls.
     """
 
     group_id: str
@@ -64,5 +64,4 @@ class RankingJudgment:
     exposure: str = "V1"
     basis: str = "ranking"
     granularity: str = "all"
-    characteristic_id: str | None = None
     solution_models: list[str] = field(default_factory=list)

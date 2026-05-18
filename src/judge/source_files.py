@@ -23,7 +23,7 @@ def load_exposed_files(solution_folder: Path) -> list[str]:
 def extract_changed_files(diff: str) -> list[str]:
     """Extract original file paths from a git diff.
 
-    Skips newly created files (those with --- /dev/null) since they don't exist at the base commit.
+    Skips newly created files because they do not exist at the base commit.
     """
     paths = []
     seen = set()
@@ -61,6 +61,8 @@ def fetch_source_files(
 
     source_files = {}
     for path in paths:
+        if _should_skip_path(path):
+            continue
         url = f"https://raw.githubusercontent.com/{repo}/{base_commit}/{path}"
         response = requests.get(url, headers=headers, timeout=timeout)
         if response.status_code == 404:
@@ -71,3 +73,10 @@ def fetch_source_files(
         except UnicodeDecodeError:
             continue
     return source_files
+
+
+def _should_skip_path(path: str) -> bool:
+    if not path or path.endswith("/"):
+        return True
+    parts = path.split("/")
+    return any(part in {"", ".", ".."} for part in parts)

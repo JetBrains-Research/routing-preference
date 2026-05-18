@@ -25,20 +25,6 @@ BOT_PATTERNS = [
     r"^allcontributors",
 ]
 
-# AI-generated content patterns
-AI_PATTERNS = [
-    r"I'd be happy to",
-    r"I'll help you",
-    r"Certainly!",
-    r"I can help",
-    r"Here's a",
-    r"Let me",
-    r"I understand",
-    r"That's a great question",
-    r"I apologize",
-    r"As an AI",
-]
-
 # Duplicate label patterns
 DUPLICATE_LABELS = [
     "duplicate",
@@ -103,7 +89,6 @@ class IssueFilter:
         self,
         min_body_length: int = 100,
         require_engagement: bool = True,
-        check_ai_content: bool = True,
         check_language: bool = True,
     ):
         """Initialize the filter.
@@ -111,12 +96,10 @@ class IssueFilter:
         Args:
             min_body_length: Minimum characters in issue body.
             require_engagement: Require at least 1 reaction or comment.
-            check_ai_content: Flag potential AI-generated content.
             check_language: Check for English language.
         """
         self.min_body_length = min_body_length
         self.require_engagement = require_engagement
-        self.check_ai_content = check_ai_content
         self.check_language = check_language
         self.stats = FilterStats()
 
@@ -130,9 +113,6 @@ class IssueFilter:
 
         if require_engagement:
             self._filters.append(("has_engagement", self._filter_has_engagement))
-
-        if check_ai_content:
-            self._filters.append(("not_ai_generated", self._filter_not_ai_generated))
 
         if check_language:
             self._filters.append(("is_english", self._filter_is_english))
@@ -221,19 +201,6 @@ class IssueFilter:
             return FilterResult(True)
         return FilterResult(False, "No engagement (0 reactions, 0 comments)")
 
-    def _filter_not_ai_generated(self, issue: CollectedIssue) -> FilterResult:
-        """Check for patterns that suggest AI-generated content."""
-        text = f"{issue.title} {issue.body}"
-        matches = []
-        for pattern in AI_PATTERNS:
-            if re.search(pattern, text, re.IGNORECASE):
-                matches.append(pattern)
-
-        # Flag if multiple AI patterns found
-        if len(matches) >= 2:
-            return FilterResult(False, f"Possible AI content: {matches[:3]}")
-        return FilterResult(True)
-
     def _filter_is_english(self, issue: CollectedIssue) -> FilterResult:
         """Check that issue is in English."""
         text = f"{issue.title} {issue.body}"
@@ -244,11 +211,8 @@ class IssueFilter:
         try:
             lang = detect(text)
             if lang == "en":
-                issue.language_confidence = 1.0
                 return FilterResult(True)
-            else:
-                issue.language_confidence = 0.0
-                return FilterResult(False, f"Non-English language detected: {lang}")
+            return FilterResult(False, f"Non-English language detected: {lang}")
         except LangDetectException:
             # Can't determine language, assume English
             return FilterResult(True)
@@ -256,7 +220,3 @@ class IssueFilter:
     def get_stats(self) -> FilterStats:
         """Get filtering statistics."""
         return self.stats
-
-    def reset_stats(self) -> None:
-        """Reset filtering statistics."""
-        self.stats = FilterStats()

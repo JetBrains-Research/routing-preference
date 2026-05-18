@@ -53,8 +53,7 @@ class HuggingFaceIssueDataset(IssueDataset):
 class LocalIssueDataset(IssueDataset):
     """Load issues from a local JSON.
 
-    List of objects. Each one should have id, repo, number, title, body,
-    assigned_reviewer, and reviewer_type.
+    List of objects. Each one should have id, repo, number, title, body.
     """
 
     def __init__(self, path: str):
@@ -78,8 +77,6 @@ def _row_to_issue(row: dict) -> Issue:
         number=row["number"],
         title=row["title"],
         body=row["body"],
-        assigned_reviewer=row.get("assigned_reviewer"),
-        reviewer_type=row.get("reviewer_type"),
         # Optional
         labels=row.get("labels") or [],
         base_commit=str(bc) if (bc := row.get("base_commit")) else None,

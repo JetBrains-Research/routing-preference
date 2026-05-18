@@ -78,27 +78,6 @@ class IssueStorage:
         logger.info("Saved %d issues to %s", len(issues), file_path)
         return file_path
 
-    def load(self, issue_id: str) -> CollectedIssue | None:
-        """Load a single issue by ID.
-
-        Args:
-            issue_id: The issue ID to load.
-
-        Returns:
-            The loaded issue or None if not found.
-        """
-        file_path = self.base_path / f"{issue_id}.json"
-        if not file_path.exists():
-            return None
-
-        try:
-            with open(file_path, encoding="utf-8") as f:
-                data = json.load(f)
-            return self._dict_to_issue(data)
-        except (json.JSONDecodeError, TypeError, KeyError, ValueError) as e:
-            logger.warning("Failed to load %s: %s", file_path, e)
-            return None
-
     def load_batch(self, filename: str = "issues.json") -> list[CollectedIssue]:
         """Load multiple issues from a JSON file.
 
@@ -149,42 +128,6 @@ class IssueStorage:
             except (json.JSONDecodeError, TypeError, KeyError, ValueError) as e:
                 logger.warning("Failed to load %s: %s", file_path, e)
 
-    def exists(self, issue_id: str) -> bool:
-        """Check if an issue exists in storage.
-
-        Args:
-            issue_id: The issue ID to check.
-
-        Returns:
-            True if the issue exists.
-        """
-        file_path = self.base_path / f"{issue_id}.json"
-        return file_path.exists()
-
-    def count(self) -> int:
-        """Count the number of stored issues.
-
-        Returns:
-            Number of issue files (excludes batch file).
-        """
-        return sum(1 for f in self.base_path.glob("*.json") if f.name != "issues.json")
-
-    def delete(self, issue_id: str) -> bool:
-        """Delete an issue from storage.
-
-        Args:
-            issue_id: The issue ID to delete.
-
-        Returns:
-            True if deleted, False if not found.
-        """
-        file_path = self.base_path / f"{issue_id}.json"
-        if file_path.exists():
-            file_path.unlink()
-            return True
-        return False
-
-
 class HuggingFaceStorage:
     """Export issues to HuggingFace datasets format."""
 
@@ -234,8 +177,6 @@ class HuggingFaceStorage:
                 "issue_type": issue.issue_type.value,
                 "complexity": issue.complexity.value,
                 "base_commit": issue.base_commit,
-                "assigned_reviewer": issue.assigned_reviewer,
-                "reviewer_type": issue.reviewer_type,
             }
             records.append(record)
 

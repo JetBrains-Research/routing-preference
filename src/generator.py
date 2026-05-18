@@ -88,7 +88,7 @@ class SolutionGenerator:
         issue: Issue,
         model: str,
         timeout: int = DEFAULT_TIMEOUT,
-    ) -> tuple[Solution, list[str]]:
+    ) -> tuple[Solution, list[str], list[str]]:
         """Generate a solution
 
         Args:
@@ -120,7 +120,7 @@ class SolutionGenerator:
             prompt = self._build_prompt(issue)
 
             start = time.monotonic()
-            trajectory, diff, exposed_files = self._run_agent(
+            trajectory, diff, exposed_files, grep_exposed_files = self._run_agent(
                 workspace, model, prompt, timeout
             )
             completion_time_seconds = time.monotonic() - start
@@ -140,7 +140,7 @@ class SolutionGenerator:
                 created_at=datetime.now().isoformat(),
                 objective_metrics=objective_metrics,
             )
-            return solution, exposed_files
+            return solution, exposed_files, grep_exposed_files
         finally:
             if workspace.exists():
                 self._remove_workspace(workspace)
@@ -230,8 +230,8 @@ class SolutionGenerator:
         model_name: str,
         prompt: str,
         timeout: int,
-    ) -> tuple[dict, str, list[str]]:
-        """Run mini-swe-agent and return (trajectory, diff, exposed_files)."""
+    ) -> tuple[dict, str, list[str], list[str]]:
+        """Run mini-swe-agent and return trajectory, diff, and exposure lists."""
         base_config = get_config_from_spec("default")
 
         if self.environment_type == "docker":
@@ -289,6 +289,7 @@ class SolutionGenerator:
         agent.run(prompt)
         trajectory = agent.serialize()
         exposed_files = list(getattr(env, "exposed_files", []))
+        grep_exposed_files = list(getattr(env, "grep_exposed_files", []))
 
         try:
             diff_result = subprocess.run(
@@ -302,4 +303,4 @@ class SolutionGenerator:
         except subprocess.CalledProcessError as e:
             diff = f"git diff failed (rc={e.returncode}): {e.stderr}"
 
-        return trajectory, diff, exposed_files
+        return trajectory, diff, exposed_files, grep_exposed_files
