@@ -52,10 +52,6 @@ def _load_solution(folder: Path):
 
     with open(folder / "solution.json", encoding="utf-8") as f:
         data = json.load(f)
-    metrics_path = folder / "objective_metrics.json"
-    if metrics_path.exists() and "objective_metrics" not in data:
-        with open(metrics_path, encoding="utf-8") as f:
-            data["objective_metrics"] = json.load(f)
     return Solution(**data)
 
 

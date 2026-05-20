@@ -18,6 +18,10 @@ def __getattr__(name: str):
         from .models import Solution
 
         return Solution
+    if name == "SolutionInfo":
+        from .models import SolutionInfo
+
+        return SolutionInfo
     if name == "Pipeline":
         from .pipeline import Pipeline
 
@@ -34,6 +38,7 @@ __all__ = [
     "IssueDataset",
     "Pipeline",
     "Solution",
+    "SolutionInfo",
     "SolutionGenerator",
     "SolutionStorage",
 ]
