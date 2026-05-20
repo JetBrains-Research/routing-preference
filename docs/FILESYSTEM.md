@@ -13,12 +13,33 @@ data/solutions/
       <run_id>/
         issue.json
         solution.json
-        objective_metrics.json
+        info.json
         patch.diff
-        exposed_files.json
 ```
 
 The issue and model folders are reused when they already exist. Each generation creates a new `run_id` folder so repeated runs are preserved.
+
+`info.json` stores run metadata that is not part of the core solution payload:
+
+```json
+{
+  "summary": "Short model-written summary of the solution.",
+  "objective_metrics": {
+    "completion_time_seconds": 4.95,
+    "step_count": 1,
+    "raw_action_count": 2,
+    "model_call_count": 2
+  },
+  "exposed_files": ["src/app.py"],
+  "grep_exposed_files": ["tests/test_app.py"]
+}
+```
+
+Historical calibration runs that used the older sidecar-file layout are archived under:
+
+```text
+data/solutions_for_judge_calibration/
+```
 
 Example:
 
