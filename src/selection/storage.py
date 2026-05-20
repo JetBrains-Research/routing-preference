@@ -338,11 +338,8 @@ def _load_scoring_judgment(
 
 
 def _load_objective_metrics(solution_folder: Path, solution: dict) -> dict[str, float]:
-    metrics_path = solution_folder / "objective_metrics.json"
-    if metrics_path.exists():
-        metrics = _load_json(metrics_path)
-    else:
-        metrics = solution.get("objective_metrics") or {}
+    info = _load_json(solution_folder / "info.json")
+    metrics = info.get("objective_metrics") or {}
     if not metrics and "duration_ms" in solution:
         metrics["completion_time_seconds"] = float(solution["duration_ms"]) / 1000
     return {

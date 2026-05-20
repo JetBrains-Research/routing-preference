@@ -15,6 +15,8 @@ Together with the four subjective LLM-judged characteristics, these make up the 
 
 Objective measurements should be captured during solution generation and stored with the solution. They should be computed by code from timestamps and trajectory data, not by an LLM.
 
+Objective measurements are stored in each solution run's `info.json` under the `objective_metrics` key.
+
 The generation environment affects these metrics. To keep comparisons fair, all seven model solutions for an issue should be generated under the same controlled execution setup.
 
 Recommended controls:

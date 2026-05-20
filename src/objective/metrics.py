@@ -17,7 +17,12 @@ class ObjectiveMetrics:
 
 def is_submission_command(command: str) -> bool:
     """Return True when the command is only the mini-swe-agent submit command."""
-    return command.strip() == SUBMISSION_COMMAND
+    command = command.strip()
+    return (
+        command == SUBMISSION_COMMAND
+        or command.startswith(SUBMISSION_COMMAND + ' "')
+        or command.startswith(SUBMISSION_COMMAND + " '")
+    )
 
 
 def compute_objective_metrics(

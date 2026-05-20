@@ -41,6 +41,6 @@ Recommended implementation details:
 
 ## Current Status
 
-Completion time is stored in `objective_metrics.json` under `completion_time_seconds`.
+Completion time is stored in `info.json` under `objective_metrics.completion_time_seconds`.
 
-The existing `duration_ms` field remains in `solution.json` as compatibility data. It is derived from the same timing boundary.
+The existing `duration_ms` field remains in `solution.json` as derived run data. It uses the same timing boundary.

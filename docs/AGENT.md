@@ -2,7 +2,7 @@
 
 ## Overview
 
-The agent uses mini-swe-agent to generate solutions for GitHub issues. It clones the repository, runs the agent with a prompt, and captures the resulting diff.
+The agent uses mini-swe-agent to generate solutions for GitHub issues. It clones the repository, runs the agent with a prompt, captures the resulting diff, and stores run metadata in `info.json`.
 
 ## Prompt Templates
 
@@ -26,6 +26,14 @@ Configuration in `prompts.json`:
 Templates use placeholders:
 - `<ISSUE_TITLE>` - The issue title
 - `<ISSUE_BODY>` - The issue description
+
+The mini-swe-agent instance template asks the model to finish with:
+
+```bash
+echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT "<summary>"
+```
+
+The text after the completion marker is stored as `summary` in the generated run's `info.json`.
 
 ## Usage
 

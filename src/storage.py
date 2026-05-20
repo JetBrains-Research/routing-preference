@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
-from .models import Issue, Solution
+from .models import Issue, Solution, SolutionInfo
 
 
 class SolutionStorage:
@@ -19,10 +19,8 @@ class SolutionStorage:
               {run_id}/
                 issue.json
                 solution.json
-                objective_metrics.json
+                info.json
                 patch.diff
-                exposed_files.json
-                grep_exposed_files.json
     """
 
     def __init__(self, base_path: Path):
@@ -33,17 +31,14 @@ class SolutionStorage:
         self,
         solution: Solution,
         issue: Issue,
-        exposed_files: list[str] | None = None,
-        grep_exposed_files: list[str] | None = None,
+        info: SolutionInfo,
     ) -> Path:
         """
         Creates:
             issue.json
             solution.json - Trajectory
-            objective_metrics.json - Objective generation metrics
+            info.json - Summary, objective metrics, and exposure lists
             patch.diff - Git diff of the solution
-            exposed_files.json - Files the agent fully read during execution
-            grep_exposed_files.json - Files exposed as grep/search snippets
         """
         folder_path = self._make_folder_path(solution)
         folder_path.mkdir(parents=True, exist_ok=True)
@@ -55,33 +50,19 @@ class SolutionStorage:
 
         solution_path = folder_path / "solution.json"
         solution_data = asdict(solution)
-        objective_metrics = solution_data.pop("objective_metrics", None)
         self._atomic_write(
             solution_path, json.dumps(solution_data, indent=2, ensure_ascii=False)
         )
 
-        if objective_metrics is not None:
-            metrics_path = folder_path / "objective_metrics.json"
-            self._atomic_write(
-                metrics_path,
-                json.dumps(objective_metrics, indent=2, ensure_ascii=False),
-            )
+        info_path = folder_path / "info.json"
+        self._atomic_write(
+            info_path,
+            json.dumps(asdict(info), indent=2, ensure_ascii=False),
+        )
 
         if solution.diff:
             diff_path = folder_path / "patch.diff"
             self._atomic_write(diff_path, solution.diff)
-
-        exposed_path = folder_path / "exposed_files.json"
-        self._atomic_write(
-            exposed_path,
-            json.dumps(exposed_files or [], indent=2, ensure_ascii=False),
-        )
-
-        grep_exposed_path = folder_path / "grep_exposed_files.json"
-        self._atomic_write(
-            grep_exposed_path,
-            json.dumps(grep_exposed_files or [], indent=2, ensure_ascii=False),
-        )
 
         return folder_path
 

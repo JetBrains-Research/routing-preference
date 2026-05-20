@@ -18,7 +18,7 @@ from minisweagent.environments import get_environment
 from minisweagent.models import get_model
 from minisweagent.utils.serialize import recursive_merge
 
-from .models import Issue, Solution
+from .models import Issue, Solution, SolutionInfo
 from .objective import compute_objective_metrics
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ class SolutionGenerator:
         issue: Issue,
         model: str,
         timeout: int = DEFAULT_TIMEOUT,
-    ) -> tuple[Solution, list[str], list[str]]:
+    ) -> tuple[Solution, SolutionInfo]:
         """Generate a solution
 
         Args:
@@ -129,6 +129,7 @@ class SolutionGenerator:
                 trajectory,
                 completion_time_seconds,
             )
+            summary = trajectory.get("info", {}).get("submission", "").strip()
 
             solution = Solution(
                 issue_id=issue.issue_id,
@@ -138,9 +139,14 @@ class SolutionGenerator:
                 trajectory=trajectory,
                 duration_ms=duration_ms,
                 created_at=datetime.now().isoformat(),
-                objective_metrics=objective_metrics,
             )
-            return solution, exposed_files, grep_exposed_files
+            info = SolutionInfo(
+                summary=summary,
+                objective_metrics=objective_metrics,
+                exposed_files=exposed_files,
+                grep_exposed_files=grep_exposed_files,
+            )
+            return solution, info
         finally:
             if workspace.exists():
                 self._remove_workspace(workspace)
