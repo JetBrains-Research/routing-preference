@@ -40,4 +40,13 @@ class Solution:
     trajectory: dict
     duration_ms: int
     created_at: str
+
+
+@dataclass
+class SolutionInfo:
+    """Run metadata stored next to a generated solution."""
+
+    summary: str
     objective_metrics: ObjectiveMetrics | None = None
+    exposed_files: list[str] = field(default_factory=list)
+    grep_exposed_files: list[str] = field(default_factory=list)
