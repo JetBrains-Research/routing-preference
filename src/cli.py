@@ -290,6 +290,7 @@ def cmd_select(args) -> None:
                     judge_model=args.judge_model,
                     exposure=args.exposure,
                     expected_solutions=args.expected_solutions,
+                    allow_partial=args.allow_partial,
                     max_average_gap=max_average_gap,
                     min_subscore_diversity=min_subscore_diversity,
                 )
@@ -323,6 +324,7 @@ def cmd_select(args) -> None:
                 judge_model=args.judge_model,
                 exposure=args.exposure,
                 expected_solutions=args.expected_solutions,
+                allow_partial=args.allow_partial,
                 max_average_gap=max_average_gap,
                 min_subscore_diversity=min_subscore_diversity,
             )
@@ -537,7 +539,18 @@ def main() -> None:
         "--expected-solutions",
         type=int,
         default=7,
-        help="Required number of scored solutions per issue (default: 7)",
+        help=(
+            "Required scored non-empty solutions per issue, or minimum when "
+            "--allow-partial is set (default: 7)"
+        ),
+    )
+    select_parser.add_argument(
+        "--allow-partial",
+        action="store_true",
+        help=(
+            "Allow issues with at least --expected-solutions scored non-empty "
+            "solutions instead of requiring exactly that count"
+        ),
     )
     select_parser.add_argument(
         "--selection-config",

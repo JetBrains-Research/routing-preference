@@ -43,6 +43,8 @@ def load_scored_solutions(
         )
         if judgment is None:
             continue
+        if _is_empty_patch_solution(folder, solution, judgment):
+            continue
 
         scores = {
             item["characteristic_id"]: float(item["value"])
@@ -74,6 +76,7 @@ def select_pair_for_issue(
     max_average_gap: float,
     min_subscore_diversity: float,
     expected_solutions: int = 7,
+    allow_partial: bool = False,
 ) -> SelectedPair:
     """Load scores for one issue and select its best survey pair."""
     scored = load_scored_solutions(
@@ -84,11 +87,7 @@ def select_pair_for_issue(
         exposure=exposure,
         granularity="all",
     )
-    if len(scored) != expected_solutions:
-        raise ValueError(
-            f"Expected {expected_solutions} scored solutions for {issue_id}, "
-            f"found {len(scored)}"
-        )
+    _validate_scored_solution_count(scored, issue_id, expected_solutions, allow_partial)
 
     candidate = select_best_pair(
         scored,
@@ -236,6 +235,7 @@ def generate_candidates_for_issue(
     max_average_gap: float,
     min_subscore_diversity: float,
     expected_solutions: int = 7,
+    allow_partial: bool = False,
 ) -> list[CandidatePair]:
     """Load scores for one issue and generate all candidate pairs."""
     scored = load_scored_solutions(
@@ -246,11 +246,7 @@ def generate_candidates_for_issue(
         exposure=exposure,
         granularity="all",
     )
-    if len(scored) != expected_solutions:
-        raise ValueError(
-            f"Expected {expected_solutions} scored solutions for {issue_id}, "
-            f"found {len(scored)}"
-        )
+    _validate_scored_solution_count(scored, issue_id, expected_solutions, allow_partial)
     return generate_candidate_pairs(
         scored,
         max_average_gap=max_average_gap,
@@ -338,8 +334,17 @@ def _load_scoring_judgment(
 
 
 def _load_objective_metrics(solution_folder: Path, solution: dict) -> dict[str, float]:
-    info = _load_json(solution_folder / "info.json")
-    metrics = info.get("objective_metrics") or {}
+    info_path = solution_folder / "info.json"
+    if info_path.exists():
+        metrics = _load_json(info_path).get("objective_metrics") or {}
+    else:
+        metrics = {}
+
+    metrics_path = solution_folder / "objective_metrics.json"
+    if not metrics and metrics_path.exists():
+        metrics = _load_json(metrics_path)
+    if not metrics:
+        metrics = solution.get("objective_metrics") or {}
     if not metrics and "duration_ms" in solution:
         metrics["completion_time_seconds"] = float(solution["duration_ms"]) / 1000
     return {
@@ -351,6 +356,51 @@ def _load_objective_metrics(solution_folder: Path, solution: dict) -> dict[str, 
 
 def _is_numeric_metric(value: object) -> bool:
     return isinstance(value, int | float) and not isinstance(value, bool)
+
+
+def _validate_scored_solution_count(
+    scored: list[ScoredSolution],
+    issue_id: str,
+    expected_solutions: int,
+    allow_partial: bool,
+) -> None:
+    if allow_partial:
+        if len(scored) < expected_solutions:
+            raise ValueError(
+                f"Expected at least {expected_solutions} scored non-empty solutions "
+                f"for {issue_id}, found {len(scored)}"
+            )
+        return
+
+    if len(scored) != expected_solutions:
+        raise ValueError(
+            f"Expected {expected_solutions} scored non-empty solutions for {issue_id}, "
+            f"found {len(scored)}"
+        )
+
+
+def _is_empty_patch_solution(
+    solution_folder: Path,
+    solution: dict,
+    judgment: dict,
+) -> bool:
+    for key in ("empty_patch", "empty_solution"):
+        if bool(judgment.get(key)):
+            return True
+        if bool(solution.get(key)):
+            return True
+
+    info_path = solution_folder / "info.json"
+    if info_path.exists():
+        info = _load_json(info_path)
+        if bool(info.get("empty_patch")) or bool(info.get("empty_solution")):
+            return True
+
+    patch_path = solution_folder / "patch.diff"
+    if patch_path.exists():
+        return not patch_path.read_text(encoding="utf-8").strip()
+
+    return False
 
 
 def _load_json(path: Path) -> dict:

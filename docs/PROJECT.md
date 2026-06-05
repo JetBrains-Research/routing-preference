@@ -19,9 +19,9 @@ The broader goal is **Model Routing** - not shifting all usage to cheaper models
 **Model Tiers**:
 | Tier | Description | Models |
 |------|-------------|--------|
-| 1 | Small, self-hosted | Qwen-8b |
-| 2 | Medium, cloud-hosted (low cost) | Qwen-32b, Qwen-235b, GLM-4.7 |
-| 3 | Large SOTA | GPT-5.2, Claude 4.6 Opus, Kimi-k2 |
+| 1 | Small | Gemma 4 31B, Qwen 3.5 27B |
+| 2 | Medium | Mistral Medium 3.5, GPT-OSS-120b |
+| 3 | Large | Claude Opus 4.7, DeepSeek V4 Pro, Kimi K2.6 |
 
 ### Provider Considerations
 
