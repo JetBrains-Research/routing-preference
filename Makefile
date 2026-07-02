@@ -13,7 +13,7 @@ help:
 	@echo "  make generate DATASET=org/routing-issues"
 	@echo ""
 	@echo "Cleanup:"
-	@echo "  make clean     - Remove generated data and caches"
+	@echo "  make clean     - Remove workspaces and caches"
 	@echo "  make clean-all - Also remove virtual environment"
 
 setup: patch-mini-swe
@@ -53,10 +53,10 @@ else
 endif
 
 clean:
-	rm -rf data/solutions/*.json
 	rm -rf data/workspaces/*
-	rm -rf __pycache__ src/**/__pycache__
-	@echo "Cleaned up generated files"
+	find src tests -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	rm -rf __pycache__
+	@echo "Cleaned up workspaces and caches"
 
 clean-all: clean
 	rm -rf .venv
