@@ -168,15 +168,21 @@ def _manhattan_distance(left: tuple[float, ...], right: tuple[float, ...]) -> fl
 
 
 def _objective_distance(left: ScoredSolution, right: ScoredSolution) -> float:
-    left_values = []
-    right_values = []
+    """Scale-free distance over the objective metrics both solutions share.
+
+    Each metric contributes its relative difference |a - b| / max(|a|, |b|),
+    so metrics with different units (seconds vs. steps) weigh equally.
+    """
+    differences = []
     for key in OBJECTIVE_KEYS:
         if key not in left.objective_metrics or key not in right.objective_metrics:
             continue
-        left_values.append(float(left.objective_metrics[key]))
-        right_values.append(float(right.objective_metrics[key]))
+        left_value = float(left.objective_metrics[key])
+        right_value = float(right.objective_metrics[key])
+        scale = max(abs(left_value), abs(right_value))
+        differences.append(abs(left_value - right_value) / scale if scale else 0.0)
 
-    if not left_values:
+    if not differences:
         return 0.0
 
-    return _euclidean_distance(tuple(left_values), tuple(right_values))
+    return sqrt(sum(difference**2 for difference in differences))

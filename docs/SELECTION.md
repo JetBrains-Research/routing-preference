@@ -240,7 +240,7 @@ Selected pairs are represented as:
   },
   "subjective_average_gap": 0.0,
   "subjective_profile_distance": 2.83,
-  "objective_distance": 12.0,
+  "objective_distance": 0.53,
   "selection_source": "scoring",
   "judge_model": "openai/gpt-4o",
   "judge_exposure": "V1",
