@@ -46,7 +46,7 @@ class SolutionGenerator:
             self._check_docker_available()
         self.environment_type = environment_type
         self.prompt_version = prompt_version
-        self._prompt_template: str | None = None
+        self._prompt_templates: dict[str, str] = {}
 
     def _check_docker_available(self) -> None:
         """Check if Docker is available and running."""
@@ -110,14 +110,7 @@ class SolutionGenerator:
         provider = model.split("/")[0] if "/" in model else "unknown"
 
         try:
-            self._clone_repo(
-                issue.repo,
-                workspace,
-                timeout=timeout,
-                base_commit=issue.base_commit,
-            )
-            if issue.base_commit:
-                self._checkout_commit(workspace, issue.base_commit, timeout=timeout)
+            self._prepare_workspace(issue, workspace, timeout=timeout)
             prompt = self._build_prompt(issue)
 
             start = time.monotonic()
@@ -151,6 +144,52 @@ class SolutionGenerator:
         finally:
             if workspace.exists():
                 self._remove_workspace(workspace)
+
+    def _prepare_workspace(
+        self,
+        issue: Issue,
+        workspace: Path,
+        timeout: int = DEFAULT_TIMEOUT,
+    ) -> None:
+        """Clone the task's repo, or init an empty repo for zero-shot tasks."""
+        if issue.repo:
+            self._clone_repo(
+                issue.repo,
+                workspace,
+                timeout=timeout,
+                base_commit=issue.base_commit,
+            )
+            if issue.base_commit:
+                self._checkout_commit(workspace, issue.base_commit, timeout=timeout)
+        else:
+            self._init_workspace(workspace, timeout=timeout)
+
+    def _init_workspace(
+        self,
+        workspace: Path,
+        timeout: int = DEFAULT_TIMEOUT,
+    ) -> None:
+        """Create an empty git workspace with an initial commit."""
+        workspace.mkdir(parents=True, exist_ok=True)
+        identity = ["-c", "user.name=routing", "-c", "user.email=routing@localhost"]
+        for cmd in (
+            ["git", "init"],
+            ["git", *identity, "commit", "--allow-empty", "-m", "Initial commit"],
+        ):
+            try:
+                subprocess.run(
+                    cmd,
+                    cwd=workspace,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                )
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(
+                    f"workspace init failed ({' '.join(cmd)}).\n"
+                    f"stderr: {e.stderr or ''}"
+                ) from e
 
     def _clone_repo(
         self,
@@ -208,25 +247,31 @@ class SolutionGenerator:
             ) from e
 
     def _make_workspace_name(self, issue: Issue) -> str:
-        safe_repo = re.sub(r"[^A-Za-z0-9._-]", "_", issue.repo or "repo")
-        safe_repo = safe_repo.strip("._-") or "repo"
-        if len(safe_repo) > 100:
-            safe_repo = safe_repo[:100]
+        base = issue.repo or issue.issue_id or "task"
+        safe_base = re.sub(r"[^A-Za-z0-9._-]", "_", base)
+        safe_base = safe_base.strip("._-") or "task"
+        if len(safe_base) > 100:
+            safe_base = safe_base[:100]
         suffix = uuid.uuid4().hex[:8]
-        return f"{safe_repo}_{issue.number}_{suffix}"
+        if issue.number:
+            return f"{safe_base}_{issue.number}_{suffix}"
+        return f"{safe_base}_{suffix}"
 
-    def _load_prompt_template(self) -> str:
-        if self._prompt_template is not None:
-            return self._prompt_template
+    def _load_prompt_template(self, task_type: str) -> str:
+        cached = self._prompt_templates.get(task_type)
+        if cached is not None:
+            return cached
 
         config = json.loads((AGENT_DIR / "prompts.json").read_text(encoding="utf-8"))
-        version = self.prompt_version or config["defaults"]["prompt"]
+        defaults = config["defaults"]
+        version = self.prompt_version or defaults.get(task_type) or defaults["prompt"]
         prompt_path = AGENT_DIR / config["prompts"][version].lstrip("./")
-        self._prompt_template = prompt_path.read_text(encoding="utf-8")
-        return self._prompt_template
+        template = prompt_path.read_text(encoding="utf-8")
+        self._prompt_templates[task_type] = template
+        return template
 
     def _build_prompt(self, issue: Issue) -> str:
-        template = self._load_prompt_template()
+        template = self._load_prompt_template(issue.task_type or "github_issue")
         return fill_template(
             template,
             {"<ISSUE_TITLE>": issue.title, "<ISSUE_BODY>": issue.body},
@@ -299,6 +344,25 @@ class SolutionGenerator:
         exposed_files = list(getattr(env, "exposed_files", []))
         grep_exposed_files = list(getattr(env, "grep_exposed_files", []))
 
+        diff = self._capture_diff(workspace)
+        return trajectory, diff, exposed_files, grep_exposed_files
+
+    def _capture_diff(self, workspace: Path) -> str:
+        """Capture the solution diff, including newly created files."""
+        try:
+            subprocess.run(
+                ["git", "add", "-N", "."],
+                cwd=workspace,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            logger.warning(
+                "git add -N failed; new files may be missing from the diff: %s",
+                e.stderr,
+            )
+
         try:
             diff_result = subprocess.run(
                 ["git", "diff"],
@@ -307,8 +371,6 @@ class SolutionGenerator:
                 text=True,
                 check=True,
             )
-            diff = diff_result.stdout
+            return diff_result.stdout
         except subprocess.CalledProcessError as e:
-            diff = f"git diff failed (rc={e.returncode}): {e.stderr}"
-
-        return trajectory, diff, exposed_files, grep_exposed_files
+            return f"git diff failed (rc={e.returncode}): {e.stderr}"
