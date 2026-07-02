@@ -53,7 +53,8 @@ class HuggingFaceIssueDataset(IssueDataset):
 class LocalIssueDataset(IssueDataset):
     """Load issues from a local JSON.
 
-    List of objects. Each one should have id, repo, number, title, body.
+    List of objects. Each one should have id, title, body. GitHub issues also
+    carry repo and number; zero-shot prompts omit them.
     """
 
     def __init__(self, path: str):
@@ -73,10 +74,12 @@ def _row_to_issue(row: dict) -> Issue:
     return Issue(
         # Required
         issue_id=str(row["id"]),
-        repo=row["repo"],
-        number=row["number"],
         title=row["title"],
         body=row["body"],
+        # GitHub fields, absent for zero-shot prompts
+        repo=row.get("repo"),
+        number=row.get("number"),
+        task_type=row.get("task_type"),
         # Optional
         labels=row.get("labels") or [],
         base_commit=str(bc) if (bc := row.get("base_commit")) else None,

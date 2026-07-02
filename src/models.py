@@ -4,17 +4,29 @@ from dataclasses import dataclass, field
 
 from .objective import ObjectiveMetrics
 
+TASK_TYPE_GITHUB_ISSUE = "github_issue"
+TASK_TYPE_ZERO_SHOT = "zero_shot"
+
 
 @dataclass
 class Issue:
-    """A GitHub issue to solve."""
+    """A task to solve: a GitHub issue or a zero-shot project prompt.
+
+    Zero-shot prompts have no repository; `title` names the task and `body`
+    holds the full prompt text.
+    """
 
     # Required fields
     issue_id: str
-    repo: str
-    number: int
     title: str
     body: str
+
+    # GitHub fields, absent for zero-shot prompts
+    repo: str | None = None
+    number: int | None = None
+
+    # Derived from repo when not set explicitly
+    task_type: str | None = None
 
     # Optional
     labels: list[str] = field(default_factory=list)
@@ -27,6 +39,12 @@ class Issue:
     state: str | None = None  # open/closed
     comments_count: int | None = None
     reactions_count: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.task_type is None:
+            self.task_type = (
+                TASK_TYPE_GITHUB_ISSUE if self.repo else TASK_TYPE_ZERO_SHOT
+            )
 
 
 @dataclass
