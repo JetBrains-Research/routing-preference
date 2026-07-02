@@ -6,7 +6,13 @@ from ..models import Issue, Solution
 from .models import (
     CharacteristicRanking,
     RankingJudgment,
+    Score,
     ScoringJudgment,
+)
+
+EMPTY_SOLUTION_REASONING = (
+    "Empty solution: the diff contains no changes, scored minimum without an "
+    "LLM call."
 )
 from .ranking import V1Ranker, V2Ranker
 from .scoring import V1Scorer, V2Scorer
@@ -36,7 +42,9 @@ class Judge:
         source_files: dict[str, str] | None = None,
     ) -> ScoringJudgment:
         """Score a solution on all characteristics."""
-        if self.exposure == "V1":
+        if not solution.diff.strip():
+            scores = self._empty_solution_scores()
+        elif self.exposure == "V1":
             scores = self.scorer.score_all(issue, solution)
         else:
             if source_files is None:
@@ -68,17 +76,22 @@ class Judge:
         source_files: dict[str, str] | None = None,
     ) -> ScoringJudgment:
         """Score all characteristics using one call per characteristic."""
-        scores = []
-        for characteristic_id in self.scorer.characteristic_order:
-            if self.exposure == "V1":
-                score = self.scorer.score_single(characteristic_id, issue, solution)
-            else:
-                if source_files is None:
-                    raise ValueError("V2 scoring requires source_files")
-                score = self.scorer.score_single(
-                    characteristic_id, issue, solution, source_files
-                )
-            scores.append(score)
+        if not solution.diff.strip():
+            scores = self._empty_solution_scores()
+        else:
+            scores = []
+            for characteristic_id in self.scorer.characteristic_order:
+                if self.exposure == "V1":
+                    score = self.scorer.score_single(
+                        characteristic_id, issue, solution
+                    )
+                else:
+                    if source_files is None:
+                        raise ValueError("V2 scoring requires source_files")
+                    score = self.scorer.score_single(
+                        characteristic_id, issue, solution, source_files
+                    )
+                scores.append(score)
 
         overall = sum(s.value for s in scores) / len(scores) if scores else 0
 
@@ -96,6 +109,16 @@ class Judge:
             score_scale=(1, 5),
             empty_solution=not solution.diff.strip(),
         )
+
+    def _empty_solution_scores(self) -> list[Score]:
+        return [
+            Score(
+                characteristic_id=characteristic_id,
+                value=1,
+                reasoning=EMPTY_SOLUTION_REASONING,
+            )
+            for characteristic_id in self.scorer.characteristic_order
+        ]
 
     # Ranking
 

@@ -55,6 +55,9 @@ uv run routing judge -v                                  # Verbose logging
 2. **Process**: Single LLM call scores all 4 characteristics
 3. **Output**: JSON with scores 1-5 and reasoning for each characteristic
 
+Solutions with an empty diff are scored 1 on every characteristic without
+calling the LLM and are flagged with `empty_solution: true`.
+
 ### Single Scoring
 
 1. **Input**: Issue and solution diff
