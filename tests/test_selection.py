@@ -44,6 +44,34 @@ class SelectionTest(unittest.TestCase):
         self.assertEqual(ab.subscore_diversity, 16.0)
         self.assertTrue(ab.feasible)
 
+    def test_same_model_pairs_are_infeasible(self):
+        candidates = generate_candidate_pairs(
+            [
+                ScoredSolution(
+                    solution_id="a",
+                    scores=scores(5, 1, 5, 1),
+                    model_slug="model-x",
+                ),
+                ScoredSolution(
+                    solution_id="b",
+                    scores=scores(1, 5, 1, 5),
+                    model_slug="model-x",
+                ),
+                ScoredSolution(
+                    solution_id="c",
+                    scores=scores(3, 3, 3, 3),
+                    model_slug="model-y",
+                ),
+            ],
+            max_average_gap=4.0,
+            min_subscore_diversity=0.0,
+        )
+
+        by_ids = {c.solution_ids: c for c in candidates}
+        self.assertFalse(by_ids[("a", "b")].feasible)
+        self.assertTrue(by_ids[("a", "c")].feasible)
+        self.assertTrue(by_ids[("b", "c")].feasible)
+
     def test_marks_candidates_infeasible_without_dropping_them(self):
         candidates = generate_candidate_pairs(
             [

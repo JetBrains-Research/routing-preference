@@ -63,7 +63,22 @@ def load_scored_solutions(
             )
         )
 
-    return scored
+    return _latest_run_per_model(scored)
+
+
+def _latest_run_per_model(scored: list[ScoredSolution]) -> list[ScoredSolution]:
+    """Keep one scored run per model so re-generated models are not duplicated.
+
+    Run ids are sortable timestamps, so the lexicographically largest run id is
+    the most recent one.
+    """
+    latest: dict[str, ScoredSolution] = {}
+    for solution in scored:
+        key = solution.model_slug or solution.solution_id
+        current = latest.get(key)
+        if current is None or (solution.run_id or "") > (current.run_id or ""):
+            latest[key] = solution
+    return sorted(latest.values(), key=lambda solution: solution.solution_id)
 
 
 def select_pair_for_issue(

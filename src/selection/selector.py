@@ -127,6 +127,7 @@ def _build_candidate(
         _centered_vector(right.score_vector),
     )
     local_score = subjective_profile_distance
+    same_model = left.model_slug is not None and left.model_slug == right.model_slug
     return CandidatePair(
         solution_a=left,
         solution_b=right,
@@ -137,7 +138,8 @@ def _build_candidate(
         objective_distance=_objective_distance(left, right),
         local_score=local_score,
         feasible=(
-            subjective_average_gap <= max_average_gap
+            not same_model
+            and subjective_average_gap <= max_average_gap
             and subscore_diversity >= min_subscore_diversity
         ),
     )
