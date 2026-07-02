@@ -54,6 +54,10 @@ For each issue:
 4. Compute candidate metrics for each pair.
 5. Mark each pair as feasible or infeasible.
 
+If a model has more than one scored run for an issue, only the most recent
+run is used, so each issue contributes at most one solution per model. Pairs
+whose two solutions come from the same model are always infeasible.
+
 Candidate metrics:
 
 ```text
@@ -236,7 +240,7 @@ Selected pairs are represented as:
   },
   "subjective_average_gap": 0.0,
   "subjective_profile_distance": 2.83,
-  "objective_distance": 12.0,
+  "objective_distance": 0.53,
   "selection_source": "scoring",
   "judge_model": "openai/gpt-4o",
   "judge_exposure": "V1",

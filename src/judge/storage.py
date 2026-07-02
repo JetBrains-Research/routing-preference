@@ -6,6 +6,7 @@ from dataclasses import asdict, fields
 from pathlib import Path
 from uuid import uuid4
 
+from ..storage import sanitize_path_segment
 from .models import (
     CharacteristicRanking,
     Ranking,
@@ -130,7 +131,7 @@ class ScoringStorage:
     def save(self, judgment: ScoringJudgment) -> Path:
         run_dir = (
             self.judgments_dir
-            / judgment.issue_id
+            / sanitize_path_segment(judgment.issue_id)
             / "scoring"
             / judge_run_id(
                 judgment.judge_model,
@@ -161,7 +162,7 @@ class ScoringStorage:
     ) -> ScoringJudgment | None:
         path = (
             self.judgments_dir
-            / issue_id
+            / sanitize_path_segment(issue_id)
             / "scoring"
             / judge_run_id(judge_model, exposure, granularity, None)
             / f"{solution_folder}.json"
@@ -208,7 +209,7 @@ class RankingStorage:
     def save(self, judgment: RankingJudgment) -> Path:
         ranking_dir = (
             self.judgments_dir
-            / judgment.issue_id
+            / sanitize_path_segment(judgment.issue_id)
             / "ranking"
             / slugify_group_id(judgment.group_id)
         )
@@ -237,7 +238,7 @@ class RankingStorage:
         filename = judge_run_id(judge_model, exposure, granularity, None) + ".json"
         path = (
             self.judgments_dir
-            / issue_id
+            / sanitize_path_segment(issue_id)
             / "ranking"
             / slugify_group_id(group_id)
             / filename

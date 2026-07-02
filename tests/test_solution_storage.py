@@ -84,5 +84,35 @@ class SolutionStorageTest(unittest.TestCase):
                 solution_id_from_run_dir(path / "solution.json")
 
 
+class SanitizedIssueIdTest(unittest.TestCase):
+    def test_lookup_by_raw_issue_id_finds_sanitized_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw_issue_id = "owner/repo#1"
+            issue = Issue(
+                issue_id=raw_issue_id,
+                repo="owner/repo",
+                number=1,
+                title="Title",
+                body="Body",
+            )
+            solution = Solution(
+                issue_id=raw_issue_id,
+                model="openai/gpt-4o",
+                provider="openai",
+                diff="diff --git a/a.py b/a.py",
+                trajectory={},
+                duration_ms=100,
+                created_at="now",
+            )
+            folder = SolutionStorage(root).save(
+                solution, issue, SolutionInfo(summary="")
+            )
+
+            self.assertEqual(folder.parent.parent.name, "owner_repo_1")
+            found = iter_solution_paths(root, issue_id=raw_issue_id)
+            self.assertEqual(found, [folder])
+
+
 if __name__ == "__main__":
     unittest.main()

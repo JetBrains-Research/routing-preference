@@ -4,7 +4,7 @@ import logging
 import os
 import subprocess
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Iterator
 
 import requests
@@ -40,7 +40,7 @@ class IssueCollector:
             cutoff_days: Only collect issues created within this many days.
         """
         self.token = token or self._get_token()
-        self.cutoff_date = datetime.now() - timedelta(days=cutoff_days)
+        self.cutoff_date = datetime.now(timezone.utc) - timedelta(days=cutoff_days)
         self.session = requests.Session()
         self.session.headers.update(
             {
@@ -140,7 +140,8 @@ class IssueCollector:
         repo_full = f"{owner}/{name}"
         page = 1
         collected = 0
-        cutoff_iso = self.cutoff_date.isoformat()
+        # GitHub timestamp format, so string comparison with created_at works.
+        cutoff_iso = self.cutoff_date.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         logger.info("Collecting issues from %s (since %s)", repo_full, cutoff_iso[:10])
 

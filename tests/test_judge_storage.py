@@ -52,6 +52,21 @@ class JudgeStorageTest(unittest.TestCase):
             },
         )
 
+    def test_parse_judge_run_id_handles_double_underscore_slugs(self):
+        # rsplit takes the rightmost "__", so slugs containing "__" are safe.
+        self.assertEqual(
+            parse_judge_run_id(
+                "vendor__model-x__V2.1_all",
+                ("intent", "correctness", "scope", "quality"),
+            ),
+            {
+                "judge_slug": "vendor__model-x",
+                "exposure": "V2.1",
+                "granularity": "all",
+                "characteristic_id": None,
+            },
+        )
+
     def test_scoring_storage_is_issue_first(self):
         with tempfile.TemporaryDirectory() as tmp:
             storage = ScoringStorage(Path(tmp))

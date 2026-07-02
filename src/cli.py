@@ -190,7 +190,6 @@ def _cmd_judge_ranking(args) -> None:
         args.model,
         args.exposure,
         args.granularity,
-        None,
     ):
         logger.info(
             "Ranking already exists for group %s; use --force to overwrite",

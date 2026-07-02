@@ -11,6 +11,7 @@ import json
 import litellm
 
 from ....models import Issue, Solution
+from ....templating import fill_template
 from ...loader import CharacteristicLoader, PromptLoader
 from ...models import Score
 
@@ -57,13 +58,15 @@ class Scorer:
         context = self.prompt_loader.load_context(
             basis="scoring", exposure=self.exposure
         )
-        context = context.replace("<ISSUE_TITLE>", issue.title)
-        context = context.replace("<ISSUE_BODY>", issue.body)
-        context = context.replace(
-            "<SOURCE_FILES>", self._format_source_files(source_files)
+        return fill_template(
+            context,
+            {
+                "<ISSUE_TITLE>": issue.title,
+                "<ISSUE_BODY>": issue.body,
+                "<SOURCE_FILES>": self._format_source_files(source_files),
+                "<SOLUTION_DIFF>": solution.diff,
+            },
         )
-        context = context.replace("<SOLUTION_DIFF>", solution.diff)
-        return context
 
     def _build_all_prompt(
         self,
@@ -136,12 +139,19 @@ class Scorer:
             char = self.char_loader.load(cid)
             name_to_id[char.name] = cid
 
+        seen_ids = set()
         for char_name, score_data in characteristics.items():
             char_id = name_to_id.get(char_name)
             if not char_id:
-                char_id = char_name.lower().replace(" ", "_")
-                if char_id not in self.characteristic_order:
-                    char_id = char_name
+                normalized = char_name.lower().replace(" ", "_")
+                if normalized not in self.characteristic_order:
+                    raise ValueError(
+                        f"Unknown characteristic in response: {char_name!r}"
+                    )
+                char_id = normalized
+            if char_id in seen_ids:
+                raise ValueError(f"Duplicate characteristic in response: {char_id}")
+            seen_ids.add(char_id)
 
             score_value = score_data.get("score")
             reasoning = score_data.get("reasoning", "")
@@ -159,9 +169,8 @@ class Scorer:
                 )
             )
 
-        if len(scores) != len(self.characteristic_order):
-            found_ids = {s.characteristic_id for s in scores}
-            missing = set(self.characteristic_order) - found_ids
+        missing = set(self.characteristic_order) - seen_ids
+        if missing:
             raise ValueError(f"Missing characteristics in response: {missing}")
 
         return scores

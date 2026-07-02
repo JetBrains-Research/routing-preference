@@ -25,18 +25,9 @@ This pulls issues from GitHub, then filters out the junk:
 
 Each issue gets classified as bug/feature and simple/medium/complex based on labels and some heuristics.
 
-## Reviewers
-
-Every issue needs someone to review the AI-generated solutions. We try to assign repo maintainers first, but fall back to the issue author if needed. The `reviewer_type` field tracks which one we used.
-
-```bash
-uv run collect-issues reviewers import --repos pallets/flask
-uv run collect-issues assign
-```
-
 ## Output format
 
-Issues are stored as JSON in `data/issues/`. Each one has the usual GitHub fields (title, body, labels, author) plus our additions (issue_type, complexity, base_commit, assigned_reviewer, reviewer_type).
+Issues are stored as JSON in `data/issues/`. Each one has the usual GitHub fields (title, body, labels, author) plus our additions (issue_type, complexity, base_commit).
 
 The `base_commit` is the repo state when the issue was created - needed so mini-swe-agent works on the right version of the code.
 
@@ -44,7 +35,6 @@ The `base_commit` is the repo state when the issue was created - needed so mini-
 
 - **Python only** - more benchmarks exist, tooling is easier
 - **Last 2 years** - avoids stale issues, maintainers still around
-- **Maintainers as reviewers** - they know the codebase; author is fallback
 
 ## References
 

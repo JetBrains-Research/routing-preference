@@ -129,6 +129,50 @@ class SelectionStorageTest(unittest.TestCase):
             )
             self.assertEqual(scored[0].objective_metrics["step_count"], 1.0)
 
+    def test_keeps_only_latest_run_per_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            solutions_dir = root / "solutions"
+            judgments_dir = root / "judgments"
+            create_solution(
+                solutions_dir,
+                judgments_dir,
+                "issue-1/model-a/20260101_000000_000000",
+                "issue-1",
+                {"intent": 1, "correctness": 1, "scope": 1, "quality": 1},
+            )
+            create_solution(
+                solutions_dir,
+                judgments_dir,
+                "issue-1/model-a/20260202_000000_000000",
+                "issue-1",
+                {"intent": 4, "correctness": 4, "scope": 4, "quality": 4},
+            )
+            create_solution(
+                solutions_dir,
+                judgments_dir,
+                "issue-1/model-b/20260101_000000_000000",
+                "issue-1",
+                {"intent": 3, "correctness": 3, "scope": 3, "quality": 3},
+            )
+
+            scored = load_scored_solutions(
+                solutions_dir,
+                judgments_dir,
+                "issue-1",
+                judge_model="judge",
+                exposure="V1",
+            )
+
+            self.assertEqual(
+                [s.solution_id for s in scored],
+                [
+                    "model-a__20260202_000000_000000",
+                    "model-b__20260101_000000_000000",
+                ],
+            )
+            self.assertEqual(scored[0].scores["intent"], 4.0)
+
     def test_ignores_boolean_objective_metrics(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

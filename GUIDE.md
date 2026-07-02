@@ -36,13 +36,13 @@ Generate solutions from a dataset:
 
 ```bash
 # Basic usage (local execution)
-uv run generate --dataset data/issues/test.json --model openai/gpt-4o-mini
+uv run routing generate --dataset data/issues/test.json --model openai/gpt-4o-mini
 
 # Limit number of issues
-uv run generate --dataset data/issues/test.json --model openai/gpt-4o-mini --limit 5
+uv run routing generate --dataset data/issues/test.json --model openai/gpt-4o-mini --limit 5
 
 # Sandboxed execution (requires Docker)
-uv run generate --dataset data/issues/test.json --model openai/gpt-4o-mini --sandbox docker
+uv run routing generate --dataset data/issues/test.json --model openai/gpt-4o-mini --sandbox docker
 
 # Using make
 make generate DATASET=data/issues/test.json MODEL=openai/gpt-4o-mini
@@ -55,7 +55,7 @@ By default, agents run locally on the host machine. For untrusted datasets, use 
 ```bash
 # Use custom Docker image (optional)
 export ROUTING_SANDBOX_IMAGE=routing-sandbox:latest
-uv run generate --dataset data/issues/untrusted.json --sandbox docker
+uv run routing generate --dataset data/issues/untrusted.json --sandbox docker
 ```
 
 See [docs/ISOLATION.md](docs/ISOLATION.md) for details.

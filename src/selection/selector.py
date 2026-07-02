@@ -127,6 +127,7 @@ def _build_candidate(
         _centered_vector(right.score_vector),
     )
     local_score = subjective_profile_distance
+    same_model = left.model_slug is not None and left.model_slug == right.model_slug
     return CandidatePair(
         solution_a=left,
         solution_b=right,
@@ -137,7 +138,8 @@ def _build_candidate(
         objective_distance=_objective_distance(left, right),
         local_score=local_score,
         feasible=(
-            subjective_average_gap <= max_average_gap
+            not same_model
+            and subjective_average_gap <= max_average_gap
             and subscore_diversity >= min_subscore_diversity
         ),
     )
@@ -166,15 +168,21 @@ def _manhattan_distance(left: tuple[float, ...], right: tuple[float, ...]) -> fl
 
 
 def _objective_distance(left: ScoredSolution, right: ScoredSolution) -> float:
-    left_values = []
-    right_values = []
+    """Scale-free distance over the objective metrics both solutions share.
+
+    Each metric contributes its relative difference |a - b| / max(|a|, |b|),
+    so metrics with different units (seconds vs. steps) weigh equally.
+    """
+    differences = []
     for key in OBJECTIVE_KEYS:
         if key not in left.objective_metrics or key not in right.objective_metrics:
             continue
-        left_values.append(float(left.objective_metrics[key]))
-        right_values.append(float(right.objective_metrics[key]))
+        left_value = float(left.objective_metrics[key])
+        right_value = float(right.objective_metrics[key])
+        scale = max(abs(left_value), abs(right_value))
+        differences.append(abs(left_value - right_value) / scale if scale else 0.0)
 
-    if not left_values:
+    if not differences:
         return 0.0
 
-    return _euclidean_distance(tuple(left_values), tuple(right_values))
+    return sqrt(sum(difference**2 for difference in differences))

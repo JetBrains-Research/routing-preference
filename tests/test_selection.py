@@ -44,6 +44,74 @@ class SelectionTest(unittest.TestCase):
         self.assertEqual(ab.subscore_diversity, 16.0)
         self.assertTrue(ab.feasible)
 
+    def test_objective_distance_is_scale_free(self):
+        candidates = generate_candidate_pairs(
+            [
+                solution(
+                    "a",
+                    scores(5, 1, 5, 1),
+                    {"completion_time_seconds": 100.0, "step_count": 10},
+                ),
+                solution(
+                    "b",
+                    scores(1, 5, 1, 5),
+                    {"completion_time_seconds": 50.0, "step_count": 10},
+                ),
+                solution(
+                    "c",
+                    scores(3, 3, 3, 3),
+                    {"completion_time_seconds": 100.0, "step_count": 5},
+                ),
+            ],
+            max_average_gap=4.0,
+            min_subscore_diversity=0.0,
+        )
+
+        by_ids = {c.solution_ids: c for c in candidates}
+        # Halving time (a vs b) and halving steps (a vs c) weigh the same.
+        self.assertAlmostEqual(by_ids[("a", "b")].objective_distance, 0.5)
+        self.assertAlmostEqual(by_ids[("a", "c")].objective_distance, 0.5)
+        # Identical metrics give zero distance.
+        self.assertAlmostEqual(
+            generate_candidate_pairs(
+                [
+                    solution("x", scores(5, 1, 5, 1), {"step_count": 3}),
+                    solution("y", scores(1, 5, 1, 5), {"step_count": 3}),
+                ],
+                max_average_gap=4.0,
+                min_subscore_diversity=0.0,
+            )[0].objective_distance,
+            0.0,
+        )
+
+    def test_same_model_pairs_are_infeasible(self):
+        candidates = generate_candidate_pairs(
+            [
+                ScoredSolution(
+                    solution_id="a",
+                    scores=scores(5, 1, 5, 1),
+                    model_slug="model-x",
+                ),
+                ScoredSolution(
+                    solution_id="b",
+                    scores=scores(1, 5, 1, 5),
+                    model_slug="model-x",
+                ),
+                ScoredSolution(
+                    solution_id="c",
+                    scores=scores(3, 3, 3, 3),
+                    model_slug="model-y",
+                ),
+            ],
+            max_average_gap=4.0,
+            min_subscore_diversity=0.0,
+        )
+
+        by_ids = {c.solution_ids: c for c in candidates}
+        self.assertFalse(by_ids[("a", "b")].feasible)
+        self.assertTrue(by_ids[("a", "c")].feasible)
+        self.assertTrue(by_ids[("b", "c")].feasible)
+
     def test_marks_candidates_infeasible_without_dropping_them(self):
         candidates = generate_candidate_pairs(
             [

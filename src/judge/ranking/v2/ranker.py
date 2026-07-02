@@ -10,6 +10,7 @@ import json
 import litellm
 
 from ....models import Issue, Solution
+from ....templating import fill_template
 from ...loader import CharacteristicLoader, PromptLoader
 from ...models import CharacteristicRanking, Ranking
 
@@ -100,17 +101,14 @@ class Ranker:
         context = self.prompt_loader.load_context(
             basis="ranking", exposure=self.exposure
         )
-        context = context.replace("<ISSUE_TITLE>", issue.title)
-        context = context.replace("<ISSUE_BODY>", issue.body)
+        values = {"<ISSUE_TITLE>": issue.title, "<ISSUE_BODY>": issue.body}
         for i, (sol, src) in enumerate(
             zip(solutions, source_files_per_solution), start=1
         ):
-            context = context.replace(f"<SOLUTION_{i}_ID>", self._short_id(i - 1))
-            context = context.replace(f"<SOLUTION_{i}_DIFF>", sol.diff)
-            context = context.replace(
-                f"<SOLUTION_{i}_SOURCE_FILES>", self._format_source_files(src)
-            )
-        return context
+            values[f"<SOLUTION_{i}_ID>"] = self._short_id(i - 1)
+            values[f"<SOLUTION_{i}_DIFF>"] = sol.diff
+            values[f"<SOLUTION_{i}_SOURCE_FILES>"] = self._format_source_files(src)
+        return fill_template(context, values)
 
     def _build_all_prompt(
         self,
@@ -234,12 +232,19 @@ class Ranker:
 
         short_to_real = self._short_to_real_map(solution_ids)
         results = []
+        seen_ids = set()
         for char_name, char_data in characteristics.items():
             char_id = name_to_id.get(char_name)
             if not char_id:
-                char_id = char_name.lower().replace(" ", "_")
-                if char_id not in self.characteristic_order:
-                    char_id = char_name
+                normalized = char_name.lower().replace(" ", "_")
+                if normalized not in self.characteristic_order:
+                    raise ValueError(
+                        f"Unknown characteristic in response: {char_name!r}"
+                    )
+                char_id = normalized
+            if char_id in seen_ids:
+                raise ValueError(f"Duplicate characteristic in response: {char_id}")
+            seen_ids.add(char_id)
 
             rankings = self._parse_ranking_list(
                 char_data.get("ranking", []), short_to_real
@@ -248,9 +253,8 @@ class Ranker:
                 CharacteristicRanking(characteristic_id=char_id, rankings=rankings)
             )
 
-        if len(results) != len(self.characteristic_order):
-            found_ids = {r.characteristic_id for r in results}
-            missing = set(self.characteristic_order) - found_ids
+        missing = set(self.characteristic_order) - seen_ids
+        if missing:
             raise ValueError(f"Missing characteristics in response: {missing}")
 
         return results

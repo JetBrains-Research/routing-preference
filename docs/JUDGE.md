@@ -26,23 +26,25 @@ Characteristic definitions and scoring rubrics are Markdown files registered in
 
 ```bash
 # Absolute scoring (batch mode - default)
-judge                                      # Score all unjudged solutions
-judge --solution <folder>                  # Score a specific solution
-judge --no-skip-existing                   # Re-score all solutions
+uv run routing judge                              # Score all unjudged solutions
+uv run routing judge --solution <folder>          # Score a specific solution
+uv run routing judge --force                      # Re-score all solutions
 
-# Single mode (one call per characteristic)
-judge --mode single
+# Single granularity (one call per characteristic)
+uv run routing judge --granularity single
 
-# Specify prompt version
-judge --prompt-version V1                  # Batch prompt version
-judge --mode single --prompt-version V2.1  # Single prompt version
+# Specify code exposure
+uv run routing judge --exposure V1                       # Diff only (default)
+uv run routing judge --exposure V2.1 --granularity single  # Agent-explored files
 
-# Comparative ranking
-judge --rank sympy__sympy-11400            # Rank all solutions for an issue
+# Comparative ranking (requires the 7 solution folders and a group id)
+uv run routing judge --basis ranking \
+  --solutions <folder1>,...,<folder7> \
+  --group sympy__sympy-11400
 
 # Other options
-judge --judge-model anthropic/claude-sonnet-4  # Use a different judge model
-judge -v                                   # Verbose logging
+uv run routing judge --model anthropic/claude-sonnet-4  # Use a different judge model
+uv run routing judge -v                                  # Verbose logging
 ```
 
 ## How It Works
@@ -52,6 +54,9 @@ judge -v                                   # Verbose logging
 1. **Input**: Issue (title + body) and solution diff
 2. **Process**: Single LLM call scores all 4 characteristics
 3. **Output**: JSON with scores 1-5 and reasoning for each characteristic
+
+Solutions with an empty diff are scored 1 on every characteristic without
+calling the LLM and are flagged with `empty_solution: true`.
 
 ### Single Scoring
 
@@ -132,14 +137,14 @@ comparison results.
 The judge run id is:
 
 ```text
-<judge_model_slug>__<exposure>_<all|characteristic>
+<judge_model_slug>__<exposure>_<all|single>
 ```
 
 For example:
 
 ```text
 openai_gpt-4o__V1_all
-openai_gpt-4o__V2.1_intent
+openai_gpt-4o__V2.1_single
 ```
 
 ### Scoring
@@ -173,8 +178,8 @@ Example:
   "exposure": "V1",
   "basis": "scoring",
   "granularity": "all",
-  "characteristic_id": null,
-  "score_scale": [1, 5]
+  "score_scale": [1, 5],
+  "empty_solution": false
 }
 ```
 
@@ -212,7 +217,7 @@ Example:
   "exposure": "V1",
   "basis": "ranking",
   "granularity": "all",
-  "characteristic_id": null
+  "solution_models": ["openai/gpt-4o-mini", "..."]
 }
 ```
 
