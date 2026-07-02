@@ -5,6 +5,7 @@ import json
 import litellm
 
 from ....models import Issue, Solution
+from ....templating import fill_template
 from ...loader import CharacteristicLoader, PromptLoader
 from ...models import CharacteristicRanking, Ranking
 
@@ -72,12 +73,11 @@ class Ranker:
         solution_ids: list[str],
     ) -> str:
         context = self.prompt_loader.load_context(basis="ranking", exposure="V1")
-        context = context.replace("<ISSUE_TITLE>", issue.title)
-        context = context.replace("<ISSUE_BODY>", issue.body)
+        values = {"<ISSUE_TITLE>": issue.title, "<ISSUE_BODY>": issue.body}
         for i, sol in enumerate(solutions, start=1):
-            context = context.replace(f"<SOLUTION_{i}_ID>", self._short_id(i - 1))
-            context = context.replace(f"<SOLUTION_{i}_DIFF>", sol.diff)
-        return context
+            values[f"<SOLUTION_{i}_ID>"] = self._short_id(i - 1)
+            values[f"<SOLUTION_{i}_DIFF>"] = sol.diff
+        return fill_template(context, values)
 
     def _build_all_prompt(
         self,

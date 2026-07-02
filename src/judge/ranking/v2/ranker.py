@@ -10,6 +10,7 @@ import json
 import litellm
 
 from ....models import Issue, Solution
+from ....templating import fill_template
 from ...loader import CharacteristicLoader, PromptLoader
 from ...models import CharacteristicRanking, Ranking
 
@@ -100,17 +101,14 @@ class Ranker:
         context = self.prompt_loader.load_context(
             basis="ranking", exposure=self.exposure
         )
-        context = context.replace("<ISSUE_TITLE>", issue.title)
-        context = context.replace("<ISSUE_BODY>", issue.body)
+        values = {"<ISSUE_TITLE>": issue.title, "<ISSUE_BODY>": issue.body}
         for i, (sol, src) in enumerate(
             zip(solutions, source_files_per_solution), start=1
         ):
-            context = context.replace(f"<SOLUTION_{i}_ID>", self._short_id(i - 1))
-            context = context.replace(f"<SOLUTION_{i}_DIFF>", sol.diff)
-            context = context.replace(
-                f"<SOLUTION_{i}_SOURCE_FILES>", self._format_source_files(src)
-            )
-        return context
+            values[f"<SOLUTION_{i}_ID>"] = self._short_id(i - 1)
+            values[f"<SOLUTION_{i}_DIFF>"] = sol.diff
+            values[f"<SOLUTION_{i}_SOURCE_FILES>"] = self._format_source_files(src)
+        return fill_template(context, values)
 
     def _build_all_prompt(
         self,

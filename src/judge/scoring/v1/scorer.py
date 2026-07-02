@@ -5,6 +5,7 @@ import json
 import litellm
 
 from ....models import Issue, Solution
+from ....templating import fill_template
 from ...loader import CharacteristicLoader, PromptLoader
 from ...models import Score
 
@@ -32,10 +33,14 @@ class Scorer:
 
     def _build_context(self, issue: Issue, solution: Solution) -> str:
         context = self.prompt_loader.load_context(basis="scoring", exposure="V1")
-        context = context.replace("<ISSUE_TITLE>", issue.title)
-        context = context.replace("<ISSUE_BODY>", issue.body)
-        context = context.replace("<SOLUTION_DIFF>", solution.diff)
-        return context
+        return fill_template(
+            context,
+            {
+                "<ISSUE_TITLE>": issue.title,
+                "<ISSUE_BODY>": issue.body,
+                "<SOLUTION_DIFF>": solution.diff,
+            },
+        )
 
     def _build_all_prompt(self, issue: Issue, solution: Solution) -> str:
         template = self.prompt_loader.load_all_prompt(

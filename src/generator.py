@@ -20,6 +20,7 @@ from minisweagent.utils.serialize import recursive_merge
 
 from .models import Issue, Solution, SolutionInfo
 from .objective import compute_objective_metrics
+from .templating import fill_template
 
 logger = logging.getLogger(__name__)
 
@@ -226,8 +227,9 @@ class SolutionGenerator:
 
     def _build_prompt(self, issue: Issue) -> str:
         template = self._load_prompt_template()
-        return template.replace("<ISSUE_TITLE>", issue.title).replace(
-            "<ISSUE_BODY>", issue.body
+        return fill_template(
+            template,
+            {"<ISSUE_TITLE>": issue.title, "<ISSUE_BODY>": issue.body},
         )
 
     def _run_agent(
