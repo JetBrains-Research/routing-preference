@@ -6,7 +6,11 @@ from pathlib import Path
 from uuid import uuid4
 
 from ..judge.storage import judge_run_id, slugify_judge_model
-from ..storage import iter_solution_paths, solution_id_from_run_dir
+from ..storage import (
+    iter_solution_paths,
+    sanitize_path_segment,
+    solution_id_from_run_dir,
+)
 from .balanced import BalancedSelectionResult, IssueSelection, ScoredCandidate
 from .models import SelectedPair, SelectedSolution
 from .selector import (
@@ -126,7 +130,9 @@ class SelectionStorage:
         self.selections_dir.mkdir(parents=True, exist_ok=True)
 
     def save(self, selected_pair: SelectedPair) -> Path:
-        issue_dir = self.selections_dir / selected_pair.issue_id
+        issue_dir = self.selections_dir / sanitize_path_segment(
+            selected_pair.issue_id
+        )
         issue_dir.mkdir(parents=True, exist_ok=True)
         path = issue_dir / f"{selection_run_id(selected_pair)}.json"
         _atomic_write(path, json.dumps(asdict(selected_pair), indent=2))
@@ -138,7 +144,7 @@ class SelectionStorage:
         run_id: str,
         candidates: list[CandidatePair],
     ) -> Path:
-        issue_dir = self.selections_dir / issue_id / "candidates"
+        issue_dir = self.selections_dir / sanitize_path_segment(issue_id) / "candidates"
         issue_dir.mkdir(parents=True, exist_ok=True)
         path = issue_dir / f"{run_id}.json"
         payload = {
@@ -152,7 +158,7 @@ class SelectionStorage:
         return path
 
     def load(self, issue_id: str, run_id: str) -> SelectedPair | None:
-        path = self.selections_dir / issue_id / f"{run_id}.json"
+        path = self.selections_dir / sanitize_path_segment(issue_id) / f"{run_id}.json"
         if not path.exists():
             return None
         data = _load_json(path)
@@ -181,8 +187,9 @@ class SelectionStorage:
 
         selected_pairs = []
         for issue_id, issue_selection in sorted(result.selections.items()):
-            candidates_path = candidates_dir / f"{issue_id}.json"
-            selected_path = selected_dir / f"{issue_id}.json"
+            safe_issue_id = sanitize_path_segment(issue_id)
+            candidates_path = candidates_dir / f"{safe_issue_id}.json"
+            selected_path = selected_dir / f"{safe_issue_id}.json"
             _atomic_write(
                 candidates_path,
                 json.dumps(_issue_candidates_payload(issue_selection), indent=2),
@@ -338,7 +345,7 @@ def _load_scoring_judgment(
 ) -> dict | None:
     path = (
         judgments_dir
-        / issue_id
+        / sanitize_path_segment(issue_id)
         / "scoring"
         / judge_run_id(judge_model, exposure, granularity, None)
         / f"{solution_id}.json"

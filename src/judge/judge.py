@@ -9,13 +9,13 @@ from .models import (
     Score,
     ScoringJudgment,
 )
+from .ranking import V1Ranker, V2Ranker
+from .scoring import V1Scorer, V2Scorer
 
 EMPTY_SOLUTION_REASONING = (
     "Empty solution: the diff contains no changes, scored minimum without an "
     "LLM call."
 )
-from .ranking import V1Ranker, V2Ranker
-from .scoring import V1Scorer, V2Scorer
 
 
 class Judge:

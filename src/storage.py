@@ -10,6 +10,15 @@ from uuid import uuid4
 from .models import Issue, Solution, SolutionInfo
 
 
+def sanitize_path_segment(value: str) -> str:
+    """Make an id safe to use as a single directory or file name.
+
+    All per-issue paths (solutions, judgments, selections) must build their
+    issue segment through this function so lookups match what was written.
+    """
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", value)
+
+
 class SolutionStorage:
     """
     Structure:
@@ -73,14 +82,10 @@ class SolutionStorage:
             f.write(content)
         temp_path.replace(path)
 
-    @staticmethod
-    def _sanitize(value: str) -> str:
-        return re.sub(r"[^A-Za-z0-9_.-]", "_", value)
-
     def _make_folder_path(self, solution: Solution) -> Path:
         run_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        safe_id = self._sanitize(solution.issue_id)
-        safe_model = self._sanitize(solution.model)
+        safe_id = sanitize_path_segment(solution.issue_id)
+        safe_model = sanitize_path_segment(solution.model)
         return self.base_path / safe_id / safe_model / run_id
 
 
@@ -89,7 +94,9 @@ def iter_solution_paths(
     issue_id: str | None = None,
 ) -> list[Path]:
     """Return solution run directories under the issue/model/run tree."""
-    root = solutions_dir / issue_id if issue_id else solutions_dir
+    root = (
+        solutions_dir / sanitize_path_segment(issue_id) if issue_id else solutions_dir
+    )
     if not root.exists():
         return []
     return sorted(path.parent for path in root.rglob("solution.json"))
