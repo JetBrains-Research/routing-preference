@@ -6,10 +6,10 @@ By default, mini-swe-agent runs commands directly on your machine. For untrusted
 
 ```bash
 # Local (default)
-uv run generate --dataset data/issues/test.json --model openai/gpt-4o-mini
+uv run routing generate --dataset data/issues/test.json --model openai/gpt-4o-mini
 
 # Docker sandbox
-uv run generate --dataset data/issues/test.json --model openai/gpt-4o-mini --sandbox docker
+uv run routing generate --dataset data/issues/test.json --model openai/gpt-4o-mini --sandbox docker
 ```
 
 Docker mode mounts the cloned repo into a container at `/workspace`. The agent runs inside the container, but git diff runs on the host after the agent finishes.

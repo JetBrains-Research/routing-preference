@@ -47,9 +47,9 @@ ifndef DATASET
 	$(error DATASET is required. Usage: make generate DATASET=org/routing-issues)
 endif
 ifdef LIMIT
-	uv run generate --dataset $(DATASET) --model $(MODEL) --limit $(LIMIT)
+	uv run routing generate --dataset $(DATASET) --model $(MODEL) --limit $(LIMIT)
 else
-	uv run generate --dataset $(DATASET) --model $(MODEL)
+	uv run routing generate --dataset $(DATASET) --model $(MODEL)
 endif
 
 clean:

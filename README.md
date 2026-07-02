@@ -16,7 +16,7 @@ The setup step applies `patches/track-exposed-files.patch` to the `mini-swe-agen
 ## Usage
 
 ```bash
-uv run generate --dataset "dataset-name" --model "openai/gpt-4o"
+uv run routing generate --dataset "dataset-name" --model "openai/gpt-4o"
 ```
 
 ## Docs
