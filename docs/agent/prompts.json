@@ -1,8 +1,10 @@
 {
     "prompts": {
-        "V1": "./prompts/V1.md"
+        "V1": "./prompts/V1.md",
+        "V1_zero_shot": "./prompts/V1_zero_shot.md"
     },
     "defaults": {
-        "prompt": "V1"
+        "prompt": "V1",
+        "zero_shot": "V1_zero_shot"
     }
 }

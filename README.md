@@ -23,5 +23,6 @@ uv run routing generate --dataset "dataset-name" --model "openai/gpt-4o"
 
 - [GUIDE.md](GUIDE.md) - Setup and usage details
 - [docs/PROJECT.md](docs/PROJECT.md) - Research overview
+- [docs/TASKS.md](docs/TASKS.md) - Task types: GitHub issues and zero-shot prompts
 - [docs/OBJECTIVE.md](docs/OBJECTIVE.md) - Objective characteristic definitions
 - [docs/FILESYSTEM.md](docs/FILESYSTEM.md) - Data and output layout

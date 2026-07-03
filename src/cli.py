@@ -65,6 +65,13 @@ def _gather_source_files(exposure: str, folder: Path, issue, solution):
 
     if not exposure.startswith("V2"):
         return None
+    if not issue.repo:
+        # Zero-shot tasks have no pre-existing source files to expose.
+        logger.info(
+            "No repository for %s; V2 exposure has no source files",
+            issue.issue_id,
+        )
+        return {}
     if not issue.base_commit:
         raise ValueError(f"V2 requires base_commit on issue {issue.issue_id}")
     if exposure == "V2.0":

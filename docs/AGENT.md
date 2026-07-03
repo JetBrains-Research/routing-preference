@@ -12,14 +12,22 @@ Prompts are loaded from `docs/agent/prompts/`:
 docs/agent/
   prompts.json          # Configuration
   prompts/
-    V1.md               # Default prompt template
+    V1.md               # Default template for GitHub issues
+    V1_zero_shot.md     # Template for zero-shot prompt tasks
 ```
 
-Configuration in `prompts.json`:
+Configuration in `prompts.json`. `defaults` maps a task type to its template;
+`prompt` is the fallback when a task type has no entry:
 ```json
 {
-  "prompts": { "V1": "./prompts/V1.md" },
-  "defaults": { "prompt": "V1" }
+  "prompts": {
+    "V1": "./prompts/V1.md",
+    "V1_zero_shot": "./prompts/V1_zero_shot.md"
+  },
+  "defaults": {
+    "prompt": "V1",
+    "zero_shot": "V1_zero_shot"
+  }
 }
 ```
 
