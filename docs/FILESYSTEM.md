@@ -130,6 +130,14 @@ Collected issue files live under:
 data/issues/
 ```
 
+## Prompts
+
+Zero-shot prompt datasets (see [TASKS.md](TASKS.md)) live under:
+
+```text
+data/prompts/
+```
+
 The locked judge calibration issue set is:
 
 ```text
