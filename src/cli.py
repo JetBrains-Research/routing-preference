@@ -56,22 +56,30 @@ def _load_solution(folder: Path):
 
 
 def _gather_source_files(exposure: str, folder: Path, issue, solution):
-    """Gather source files for V2 exposures. Returns None for V1."""
+    """Gather source files for V2/G1 exposures. Returns None for V1."""
     from .judge.source_files import (
         extract_changed_files,
         fetch_source_files,
+        load_asset_files,
         load_exposed_files,
     )
 
+    if exposure == "G1":
+        if issue.repo:
+            raise ValueError(
+                f"G1 is a zero-shot exposure; {issue.issue_id} has a repository. "
+                "Use V1/V2.0/V2.1 for GitHub issues."
+            )
+        if not issue.assets_dir:
+            return {}
+        return load_asset_files(issue.assets_dir)
     if not exposure.startswith("V2"):
         return None
     if not issue.repo:
-        # Zero-shot tasks have no pre-existing source files to expose.
-        logger.info(
-            "No repository for %s; V2 exposure has no source files",
-            issue.issue_id,
+        raise ValueError(
+            f"V2 exposures need a repository; {issue.issue_id} is a zero-shot "
+            "task. Use --exposure G1 instead."
         )
-        return {}
     if not issue.base_commit:
         raise ValueError(f"V2 requires base_commit on issue {issue.issue_id}")
     if exposure == "V2.0":
@@ -478,9 +486,12 @@ def main() -> None:
     )
     judge_parser.add_argument(
         "--exposure",
-        choices=["V1", "V2.0", "V2.1"],
+        choices=["V1", "V2.0", "V2.1", "G1"],
         default="V1",
-        help="Code exposure: V1 (none), V2.0 (patch-affected), V2.1 (agent-explored)",
+        help=(
+            "Code exposure: V1 (none), V2.0 (patch-affected), "
+            "V2.1 (agent-explored), G1 (zero-shot: provided starting files)"
+        ),
     )
     judge_parser.add_argument(
         "--basis",

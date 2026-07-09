@@ -18,6 +18,7 @@ class LoadedCharacteristic:
     scoring_basis: str
     scoring_steps_v1: str
     scoring_steps_v2: str
+    scoring_steps_g1: str
     ranking_basis: str
     ranking_steps_v1: str
     ranking_steps_v2: str
@@ -77,6 +78,9 @@ class CharacteristicLoader:
             scoring_basis=self._load_file(char_dir / files["scoring_basis"]),
             scoring_steps_v1=self._load_file(char_dir / files["scoring_steps_v1"]),
             scoring_steps_v2=self._load_file(char_dir / files["scoring_steps_v2"]),
+            scoring_steps_g1=self._load_file(
+                char_dir / files.get("scoring_steps_g1", "SCORING_STEPS_G1.md")
+            ),
             ranking_basis=self._load_file(char_dir / files["ranking_basis"]),
             ranking_steps_v1=self._load_file(char_dir / files["ranking_steps_v1"]),
             ranking_steps_v2=self._load_file(char_dir / files["ranking_steps_v2"]),
