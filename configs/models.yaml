@@ -39,7 +39,7 @@ models:
       openrouter:
         openrouter_id: deepseek/deepseek-v4-pro
         model: openrouter/deepseek/deepseek-v4-pro
-        provider_order: [fireworks, together, wandb]
+        provider_order: [baseten, alibaba, novita]
         input_cost: 0.435
         output_cost: 0.87
 
@@ -54,7 +54,7 @@ models:
       openrouter:
         openrouter_id: moonshotai/kimi-k2.6
         model: openrouter/moonshotai/kimi-k2.6
-        provider_order: [wandb, fireworks, together]
+        provider_order: [wandb, nebius, deepinfra]
         input_cost: 0.73
         output_cost: 3.49
 
@@ -99,7 +99,7 @@ models:
       openrouter:
         openrouter_id: google/gemma-4-31b-it
         model: openrouter/google/gemma-4-31b-it
-        provider_order: [together, wandb, sambanova]
+        provider_order: [wandb, venice]
         input_cost: 0.12
         output_cost: 0.37
 
@@ -114,5 +114,6 @@ models:
       openrouter:
         openrouter_id: qwen/qwen3.5-27b
         model: openrouter/qwen/qwen3.5-27b
+        provider_order: [deepinfra, alibaba]
         input_cost: 0.195
         output_cost: 1.56
