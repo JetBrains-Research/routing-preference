@@ -39,6 +39,7 @@ models:
       openrouter:
         openrouter_id: deepseek/deepseek-v4-pro
         model: openrouter/deepseek/deepseek-v4-pro
+        provider_order: [fireworks, together, wandb]
         input_cost: 0.435
         output_cost: 0.87
 
@@ -53,6 +54,7 @@ models:
       openrouter:
         openrouter_id: moonshotai/kimi-k2.6
         model: openrouter/moonshotai/kimi-k2.6
+        provider_order: [wandb, fireworks, together]
         input_cost: 0.73
         output_cost: 3.49
 
@@ -82,6 +84,7 @@ models:
       openrouter:
         openrouter_id: openai/gpt-oss-120b
         model: openrouter/openai/gpt-oss-120b
+        provider_order: [cerebras, groq]
         input_cost: 0.039
         output_cost: 0.18
 
@@ -96,6 +99,7 @@ models:
       openrouter:
         openrouter_id: google/gemma-4-31b-it
         model: openrouter/google/gemma-4-31b-it
+        provider_order: [together, wandb, sambanova]
         input_cost: 0.12
         output_cost: 0.37
 

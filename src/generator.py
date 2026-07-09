@@ -27,7 +27,25 @@ logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 600
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 AGENT_DIR = PROJECT_ROOT / "docs" / "agent"
+MODELS_CONFIG_PATH = PROJECT_ROOT / "configs" / "models.yaml"
 DEFAULT_DOCKER_IMAGE = "python:3.11-slim"
+
+
+def load_provider_order(
+    model_name: str, config_path: Path = MODELS_CONFIG_PATH
+) -> list[str] | None:
+    """Return the configured OpenRouter provider order for a model, if any."""
+    if not config_path.exists():
+        return None
+    import yaml
+
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    for entry in (config.get("models") or {}).values():
+        openrouter = (entry.get("providers") or {}).get("openrouter") or {}
+        if openrouter.get("model") == model_name:
+            order = openrouter.get("provider_order")
+            return [str(p) for p in order] if order else None
+    return None
 
 
 class SolutionGenerator:
@@ -330,14 +348,26 @@ class SolutionGenerator:
                 "timeout": timeout,
             }
 
+        model_config = {
+            "model_name": model_name,
+            "cost_tracking": "ignore_errors",
+            "model_class": "litellm_textbased",
+        }
+        provider_order = load_provider_order(model_name)
+        if provider_order:
+            model_config["model_kwargs"] = {
+                "extra_body": {
+                    "provider": {
+                        "order": provider_order,
+                        "allow_fallbacks": True,
+                    }
+                }
+            }
+
         config = recursive_merge(
             base_config,
             {
-                "model": {
-                    "model_name": model_name,
-                    "cost_tracking": "ignore_errors",
-                    "model_class": "litellm_textbased",
-                },
+                "model": model_config,
                 "environment": env_config,
                 "agent": {
                     "cost_limit": 10.0,
