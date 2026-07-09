@@ -162,18 +162,31 @@ class SolutionGenerator:
             if issue.base_commit:
                 self._checkout_commit(workspace, issue.base_commit, timeout=timeout)
         else:
-            self._init_workspace(workspace, timeout=timeout)
+            self._init_workspace(
+                workspace, timeout=timeout, seed_dir=issue.assets_dir
+            )
 
     def _init_workspace(
         self,
         workspace: Path,
         timeout: int = DEFAULT_TIMEOUT,
+        seed_dir: str | None = None,
     ) -> None:
-        """Create an empty git workspace with an initial commit."""
+        """Create a git workspace, seeded with provided asset files if any.
+
+        Seeded files are part of the initial commit so they never appear in
+        the solution diff.
+        """
         workspace.mkdir(parents=True, exist_ok=True)
+        if seed_dir:
+            source = Path(seed_dir)
+            if not source.is_dir():
+                raise RuntimeError(f"Workspace seed directory not found: {source}")
+            shutil.copytree(source, workspace / source.name)
         identity = ["-c", "user.name=routing", "-c", "user.email=routing@localhost"]
         for cmd in (
             ["git", "init"],
+            ["git", "add", "-A"],
             ["git", *identity, "commit", "--allow-empty", "-m", "Initial commit"],
         ):
             try:

@@ -67,10 +67,10 @@ class LocalIssueDataset(IssueDataset):
 
     def __getitem__(self, idx: int) -> Issue:
         row = self._issues[idx]
-        return _row_to_issue(row)
+        return _row_to_issue(row, base_dir=self.path.parent)
 
 
-def _row_to_issue(row: dict) -> Issue:
+def _row_to_issue(row: dict, base_dir: Path | None = None) -> Issue:
     return Issue(
         # Required
         issue_id=str(row["id"]),
@@ -80,6 +80,7 @@ def _row_to_issue(row: dict) -> Issue:
         repo=row.get("repo"),
         number=row.get("number"),
         task_type=row.get("task_type"),
+        assets_dir=_resolve_assets_dir(row.get("assets_dir"), base_dir),
         # Optional
         labels=row.get("labels") or [],
         base_commit=str(bc) if (bc := row.get("base_commit")) else None,
@@ -92,3 +93,13 @@ def _row_to_issue(row: dict) -> Issue:
         comments_count=row.get("comments_count"),
         reactions_count=row.get("reactions_count"),
     )
+
+
+def _resolve_assets_dir(value: str | None, base_dir: Path | None) -> str | None:
+    """Resolve an assets path relative to the dataset file that declared it."""
+    if not value:
+        return None
+    path = Path(value)
+    if not path.is_absolute() and base_dir is not None:
+        path = base_dir / path
+    return str(path)

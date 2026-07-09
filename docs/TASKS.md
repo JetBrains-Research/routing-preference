@@ -35,6 +35,20 @@ Prompts are stored as JSON files under `data/prompts/`:
 Only `id`, `title`, and `body` are required. `title` is a short task name;
 `body` holds the full prompt text.
 
+Tasks whose prompt references provided data files declare an `assets_dir`,
+resolved relative to the dataset file. The directory is copied into the
+workspace and committed before the agent starts, so the agent can read the
+files but they never appear in the solution diff:
+
+```json
+{
+  "id": "prompt__book-journey-002",
+  "title": "Book Journey",
+  "body": "... Books are loaded from assets/books.json ...",
+  "assets_dir": "prompts_vibench/002-book-journey/assets"
+}
+```
+
 ## Usage
 
 Generation, judging, and selection use the same commands as issue tasks:
