@@ -25,6 +25,9 @@ from .templating import fill_template
 logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT = 600
+# Per agent command; generous runs waste minutes when a model starts a
+# blocking server and waits out the clock.
+COMMAND_TIMEOUT = 120
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 AGENT_DIR = PROJECT_ROOT / "docs" / "agent"
 MODELS_CONFIG_PATH = PROJECT_ROOT / "configs" / "models.yaml"
@@ -133,7 +136,7 @@ class SolutionGenerator:
 
             start = time.monotonic()
             trajectory, diff, exposed_files, grep_exposed_files = self._run_agent(
-                workspace, model, prompt, timeout
+                workspace, model, prompt
             )
             completion_time_seconds = time.monotonic() - start
             duration_ms = int(completion_time_seconds * 1000)
@@ -313,7 +316,6 @@ class SolutionGenerator:
         workspace: Path,
         model_name: str,
         prompt: str,
-        timeout: int,
     ) -> tuple[dict, str, list[str], list[str]]:
         """Run mini-swe-agent and return trajectory, diff, and exposure lists."""
         base_config = get_config_from_spec("default")
@@ -324,7 +326,7 @@ class SolutionGenerator:
                 "environment_class": "docker",
                 "image": docker_image,
                 "cwd": "/workspace",
-                "timeout": timeout,
+                "timeout": COMMAND_TIMEOUT,
                 "forward_env": [
                     "GITHUB_TOKEN",
                     "GH_TOKEN",
@@ -345,7 +347,7 @@ class SolutionGenerator:
         else:
             env_config = {
                 "cwd": str(workspace),
-                "timeout": timeout,
+                "timeout": COMMAND_TIMEOUT,
             }
 
         model_config = {
