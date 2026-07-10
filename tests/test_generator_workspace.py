@@ -125,6 +125,22 @@ class WorkspacePreparationTest(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 self.generator._prepare_workspace(issue, workspace)
 
+    def test_capture_diff_excludes_execution_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "ws"
+            self.generator._init_workspace(workspace)
+            (workspace / "app.py").write_text("code\n", encoding="utf-8")
+            (workspace / "__pycache__").mkdir()
+            (workspace / "__pycache__" / "app.cpython-311.pyc").write_bytes(b"\x00")
+            (workspace / ".venv" / "lib").mkdir(parents=True)
+            (workspace / ".venv" / "lib" / "site.py").write_text("x", encoding="utf-8")
+
+            diff = self.generator._capture_diff(workspace)
+
+            self.assertIn("app.py", diff)
+            self.assertNotIn("__pycache__", diff)
+            self.assertNotIn(".venv", diff)
+
     def test_workspace_name_falls_back_to_task_id(self):
         name = self.generator._make_workspace_name(_zero_shot_issue())
         self.assertTrue(name.startswith("prompt__tool-1_"))

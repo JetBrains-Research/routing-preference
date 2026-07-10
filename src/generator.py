@@ -392,8 +392,29 @@ class SolutionGenerator:
         diff = self._capture_diff(workspace)
         return trajectory, diff, exposed_files, grep_exposed_files
 
+    # Execution artifacts that must not appear in solution diffs.
+    DIFF_EXCLUDES = (
+        "__pycache__/",
+        "*.pyc",
+        ".venv/",
+        "venv/",
+        "env/",
+        "node_modules/",
+        ".pytest_cache/",
+        "*.egg-info/",
+        ".mypy_cache/",
+        ".ruff_cache/",
+    )
+
     def _capture_diff(self, workspace: Path) -> str:
         """Capture the solution diff, including newly created files."""
+        exclude_file = workspace / ".git" / "info" / "exclude"
+        try:
+            exclude_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(exclude_file, "a", encoding="utf-8") as f:
+                f.write("\n".join(self.DIFF_EXCLUDES) + "\n")
+        except OSError:
+            logger.warning("Could not write diff excludes for %s", workspace)
         try:
             subprocess.run(
                 ["git", "add", "-N", "."],
