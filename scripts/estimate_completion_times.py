@@ -9,8 +9,8 @@ the model's nominal serving conditions instead:
          + steps x COMMAND_SECONDS           (command execution)
 
 ttft_p50_seconds and best_openrouter_speed_tps come from configs/models.yaml
-(per model, externally sourced). COMMAND_SECONDS is the one declared
-constant; --sensitivity reports how little the pair ordering depends on it.
+(per model, externally sourced). COMMAND_SECONDS is measured from the trajectories
+themselves; --sensitivity reports how little the ordering depends on it.
 
 Usage:
     python scripts/estimate_completion_times.py [--sensitivity]
@@ -29,7 +29,9 @@ SOLUTIONS_DIR = ROOT / "data" / "solutions"
 MODELS_CONFIG = ROOT / "configs" / "models.yaml"
 OUTPUT = ROOT / "data" / "exports" / "estimated_completion_times.json"
 
-COMMAND_SECONDS = 1.0
+# Timeout-trimmed mean of 3,974 command durations measured directly from the
+# generation trajectories (commands hitting the 120s/600s timeout excluded).
+COMMAND_SECONDS = 0.56
 
 
 def model_constants() -> dict[str, dict]:
