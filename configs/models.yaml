@@ -1,6 +1,8 @@
 # Model configurations
 # Costs are per 1M tokens in USD.
 # OpenRouter model IDs were verified on 2026-05-23.
+# ttft_p50_seconds: p50 time-to-first-token of the provider_order[0] endpoint,
+# from the OpenRouter endpoint stats API, retrieved 2026-07-13.
 
 solution_models:
   - openrouter/anthropic/claude-opus-4.7
@@ -25,6 +27,7 @@ models:
       openrouter:
         openrouter_id: anthropic/claude-opus-4.7
         model: openrouter/anthropic/claude-opus-4.7
+        ttft_p50_seconds: 1.86
         input_cost: 5.00
         output_cost: 25.00
 
@@ -39,6 +42,7 @@ models:
       openrouter:
         openrouter_id: deepseek/deepseek-v4-pro
         model: openrouter/deepseek/deepseek-v4-pro
+        ttft_p50_seconds: 0.64
         provider_order: [baseten, alibaba, novita]
         input_cost: 0.435
         output_cost: 0.87
@@ -54,6 +58,7 @@ models:
       openrouter:
         openrouter_id: moonshotai/kimi-k2.6
         model: openrouter/moonshotai/kimi-k2.6
+        ttft_p50_seconds: 1.56
         provider_order: [wandb, nebius, deepinfra]
         input_cost: 0.73
         output_cost: 3.49
@@ -69,6 +74,7 @@ models:
       openrouter:
         openrouter_id: mistralai/mistral-medium-3-5
         model: openrouter/mistralai/mistral-medium-3-5
+        ttft_p50_seconds: 0.36
         input_cost: 1.50
         output_cost: 7.50
 
@@ -84,6 +90,7 @@ models:
       openrouter:
         openrouter_id: openai/gpt-oss-120b
         model: openrouter/openai/gpt-oss-120b
+        ttft_p50_seconds: 0.19
         provider_order: [cerebras, groq]
         input_cost: 0.039
         output_cost: 0.18
@@ -99,6 +106,7 @@ models:
       openrouter:
         openrouter_id: google/gemma-4-31b-it
         model: openrouter/google/gemma-4-31b-it
+        ttft_p50_seconds: 0.28
         provider_order: [wandb, venice]
         input_cost: 0.12
         output_cost: 0.37
@@ -114,6 +122,7 @@ models:
       openrouter:
         openrouter_id: qwen/qwen3.5-27b
         model: openrouter/qwen/qwen3.5-27b
+        ttft_p50_seconds: 0.81
         provider_order: [deepinfra, alibaba]
         input_cost: 0.195
         output_cost: 1.56
