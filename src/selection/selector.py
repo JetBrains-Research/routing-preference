@@ -103,14 +103,34 @@ def select_best_pair(
 
 def select_best_candidate(candidates: list[CandidatePair]) -> CandidatePair:
     """Select the best candidate from an already generated candidate list."""
+    return select_top_candidates(candidates, 1)[0]
+
+
+def select_top_candidates(
+    candidates: list[CandidatePair],
+    n: int,
+) -> list[CandidatePair]:
+    """Select the n best distinct candidate pairs.
+
+    Feasible pairs are used first, in the usual ordering; if fewer than n are
+    feasible, the remainder falls back to the best infeasible pairs.
+    """
     if not candidates:
         raise ValueError("At least one candidate pair is required")
+    if n < 1:
+        raise ValueError("At least one pair must be requested")
+    if n > len(candidates):
+        raise ValueError(
+            f"Requested {n} pairs but only {len(candidates)} candidates exist"
+        )
 
-    feasible_candidates = [candidate for candidate in candidates if candidate.feasible]
-    if feasible_candidates:
-        candidates = feasible_candidates
-
-    return sorted(candidates, key=_candidate_sort_key)[0]
+    feasible = sorted(
+        (c for c in candidates if c.feasible), key=_candidate_sort_key
+    )
+    infeasible = sorted(
+        (c for c in candidates if not c.feasible), key=_candidate_sort_key
+    )
+    return (feasible + infeasible)[:n]
 
 
 def _build_candidate(

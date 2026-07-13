@@ -254,10 +254,13 @@ def cmd_select(args) -> None:
         load_selection_config,
         select_balanced_pairs,
         select_balanced_pairs_cpsat,
-        select_best_candidate,
+        select_top_candidates,
         selection_source_run_id,
     )
     from .selection.models import SelectedPair
+
+    if args.pairs_per_issue < 1:
+        raise ValueError("--pairs-per-issue must be at least 1")
 
     config = load_selection_config(args.selection_config)
     max_average_gap = (
@@ -317,10 +320,18 @@ def cmd_select(args) -> None:
             raise ValueError("No issues had enough scored candidates for selection")
 
         if args.selection_method == "cpsat":
-            result = select_balanced_pairs_cpsat(issue_candidates, effective_config)
+            result = select_balanced_pairs_cpsat(
+                issue_candidates,
+                effective_config,
+                pairs_per_issue=args.pairs_per_issue,
+            )
             method = "cpsat_v1"
         else:
-            result = select_balanced_pairs(issue_candidates, effective_config)
+            result = select_balanced_pairs(
+                issue_candidates,
+                effective_config,
+                pairs_per_issue=args.pairs_per_issue,
+            )
             method = "greedy_balanced_v1"
         global_run_id = args.selection_run_id or f"{method}__{run_id}"
         path = storage.save_global_run(global_run_id, result, method=method)
@@ -342,23 +353,34 @@ def cmd_select(args) -> None:
                 max_average_gap=max_average_gap,
                 min_subscore_diversity=min_subscore_diversity,
             )
-            selected_candidate = select_best_candidate(candidates)
-            selected = SelectedPair.from_candidate(
-                issue_id,
-                selected_candidate,
-                selection_source="scoring",
-                judge_model=args.judge_model,
-                judge_exposure=args.exposure,
+            selected_candidates = select_top_candidates(
+                candidates, args.pairs_per_issue
             )
+            selected_pairs = [
+                SelectedPair.from_candidate(
+                    issue_id,
+                    candidate,
+                    selection_source="scoring",
+                    judge_model=args.judge_model,
+                    judge_exposure=args.exposure,
+                    rank=rank,
+                )
+                for rank, candidate in enumerate(selected_candidates, 1)
+            ]
             storage.save_candidates(issue_id, run_id, candidates)
-            path = storage.save(selected)
-            logger.info(
-                "  %s: %s vs %s -> %s",
-                issue_id,
-                selected.solution_a.solution_id,
-                selected.solution_b.solution_id,
-                path,
-            )
+            if args.pairs_per_issue == 1:
+                path = storage.save(selected_pairs[0])
+            else:
+                path = storage.save_pairs(selected_pairs)
+            for pair in selected_pairs:
+                logger.info(
+                    "  %s (#%d): %s vs %s",
+                    issue_id,
+                    pair.rank,
+                    pair.solution_a.solution_id,
+                    pair.solution_b.solution_id,
+                )
+            logger.info("  %s -> %s", issue_id, path)
         except Exception as e:
             logger.error("  %s: FAILED - %s", issue_id, e)
 
@@ -592,6 +614,12 @@ def main() -> None:
             "Minimum per-characteristic absolute score difference sum for "
             "preferred pairs. Overrides config."
         ),
+    )
+    select_parser.add_argument(
+        "--pairs-per-issue",
+        type=int,
+        default=1,
+        help="Number of distinct pairs to select per issue (default: 1)",
     )
     select_parser.add_argument(
         "--global-balanced",
