@@ -22,10 +22,10 @@ class ScoredCandidate:
 
 @dataclass(frozen=True)
 class IssueSelection:
-    """Selected candidate for one issue."""
+    """Selected candidates for one issue, best first."""
 
     issue_id: str
-    selected: ScoredCandidate
+    selected: list[ScoredCandidate]
     candidates: list[ScoredCandidate]
     used_fallback: bool
 
@@ -43,8 +43,11 @@ class BalancedSelectionResult:
 def select_balanced_pairs(
     issue_candidates: dict[str, list[CandidatePair]],
     config: SelectionConfig,
+    pairs_per_issue: int = 1,
 ) -> BalancedSelectionResult:
-    """Select one pair per issue while preferring underrepresented models."""
+    """Select pairs_per_issue distinct pairs per issue, balancing model usage."""
+    if pairs_per_issue < 1:
+        raise ValueError("pairs_per_issue must be at least 1")
     model_usage: Counter[str] = Counter()
     quality_band_usage: Counter[str] = Counter()
     selections: dict[str, IssueSelection] = {}
@@ -61,35 +64,62 @@ def select_balanced_pairs(
         candidates = issue_candidates[issue_id]
         if not candidates:
             raise ValueError(f"No candidates for issue: {issue_id}")
+        if pairs_per_issue > len(candidates):
+            raise ValueError(
+                f"Requested {pairs_per_issue} pairs for {issue_id} but only "
+                f"{len(candidates)} candidates exist"
+            )
 
-        pool = [candidate for candidate in candidates if candidate.feasible]
-        used_fallback = False
-        if not pool:
+        feasible = [candidate for candidate in candidates if candidate.feasible]
+        infeasible = [candidate for candidate in candidates if not candidate.feasible]
+        if len(feasible) < pairs_per_issue:
             if config.fallback_if_no_feasible_pair != "best_local":
                 raise ValueError(
-                    f"No feasible candidates for {issue_id} and fallback is disabled"
+                    f"Only {len(feasible)} feasible candidates for {issue_id} "
+                    "and fallback is disabled"
                 )
-            pool = candidates
-            used_fallback = True
+        # Feasible candidates are always preferred; infeasible ones only fill
+        # the remainder when the feasible pool is smaller than pairs_per_issue.
+        pool = feasible or list(infeasible)
+        backup = infeasible if feasible else []
 
-        scored = [
+        scored_snapshot = [
             _score_candidate(
                 candidate,
                 config,
                 model_usage=model_usage,
                 quality_band_usage=quality_band_usage,
             )
-            for candidate in pool
+            for candidate in pool + backup
         ]
-        selected = sorted(scored, key=_scored_candidate_sort_key)[0]
-        _update_usage(model_usage, selected.candidate)
-        if selected.quality_band:
-            quality_band_usage[selected.quality_band] += 1
+
+        selected: list[ScoredCandidate] = []
+        remaining = list(pool)
+        remaining_backup = list(backup)
+        for _ in range(pairs_per_issue):
+            if not remaining:
+                remaining, remaining_backup = remaining_backup, []
+            scored = [
+                _score_candidate(
+                    candidate,
+                    config,
+                    model_usage=model_usage,
+                    quality_band_usage=quality_band_usage,
+                )
+                for candidate in remaining
+            ]
+            pick = sorted(scored, key=_scored_candidate_sort_key)[0]
+            selected.append(pick)
+            remaining = [c for c in remaining if c is not pick.candidate]
+            _update_usage(model_usage, pick.candidate)
+            if pick.quality_band:
+                quality_band_usage[pick.quality_band] += 1
+
         selections[issue_id] = IssueSelection(
             issue_id=issue_id,
             selected=selected,
-            candidates=scored,
-            used_fallback=used_fallback,
+            candidates=scored_snapshot,
+            used_fallback=any(not s.candidate.feasible for s in selected),
         )
 
     return BalancedSelectionResult(

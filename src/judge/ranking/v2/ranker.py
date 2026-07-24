@@ -19,8 +19,12 @@ N_SOLUTIONS = 7
 
 class Ranker:
     def __init__(self, model: str = "openai/gpt-4o", exposure: str = "V2.1"):
-        if exposure not in ("V2.0", "V2.1"):
-            raise ValueError(f"V2 ranker requires V2.x exposure, got: {exposure}")
+        # G1 is accepted so Judge can construct; G1 ranking prompts are not
+        # registered, so ranking fails at prompt load with a clear error.
+        if exposure not in ("V2.0", "V2.1", "G1"):
+            raise ValueError(
+                f"V2 ranker requires a V2.x or G1 exposure, got: {exposure}"
+            )
         self.model = model
         self.exposure = exposure
         self.char_loader = CharacteristicLoader()

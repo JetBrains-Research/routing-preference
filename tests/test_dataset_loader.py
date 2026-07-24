@@ -58,6 +58,29 @@ class DatasetLoaderTest(unittest.TestCase):
             self.assertIsNone(issues[0].base_commit)
             self.assertEqual(issues[0].task_type, TASK_TYPE_ZERO_SHOT)
 
+    def test_assets_dir_resolved_relative_to_dataset_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "tasks" / "002" / "assets").mkdir(parents=True)
+            path = _write_dataset(
+                root,
+                [
+                    {
+                        "id": "prompt__books-1",
+                        "title": "Books",
+                        "body": "Load assets/books.json.",
+                        "assets_dir": "tasks/002/assets",
+                    }
+                ],
+            )
+
+            issues = list(load_issues(path))
+
+            self.assertEqual(
+                issues[0].assets_dir,
+                str(root / "tasks" / "002" / "assets"),
+            )
+
     def test_explicit_task_type_is_kept(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = _write_dataset(

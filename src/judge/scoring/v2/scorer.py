@@ -18,8 +18,10 @@ from ...models import Score
 
 class Scorer:
     def __init__(self, model: str = "openai/gpt-4o", exposure: str = "V2.1"):
-        if exposure not in ("V2.0", "V2.1"):
-            raise ValueError(f"V2 scorer requires V2.x exposure, got: {exposure}")
+        if exposure not in ("V2.0", "V2.1", "G1"):
+            raise ValueError(
+                f"V2 scorer requires a V2.x or G1 exposure, got: {exposure}"
+            )
         self.model = model
         self.exposure = exposure
         self.char_loader = CharacteristicLoader()

@@ -51,10 +51,30 @@ class GatherSourceFilesTest(unittest.TestCase):
         )
         self.assertIsNone(result)
 
-    def test_v2_returns_empty_for_zero_shot_tasks(self):
+    def test_v2_rejects_zero_shot_tasks(self):
+        issue = Issue(issue_id="prompt__x-1", title="t", body="b")
+        with self.assertRaisesRegex(ValueError, "G1"):
+            _gather_source_files(
+                "V2.1", Path("unused"), issue, self._solution(issue.issue_id)
+            )
+
+    def test_g1_rejects_github_issues(self):
+        issue = Issue(
+            issue_id="owner__repo-1",
+            title="t",
+            body="b",
+            repo="owner/repo",
+            number=1,
+        )
+        with self.assertRaisesRegex(ValueError, "zero-shot"):
+            _gather_source_files(
+                "G1", Path("unused"), issue, self._solution(issue.issue_id)
+            )
+
+    def test_g1_returns_empty_without_assets(self):
         issue = Issue(issue_id="prompt__x-1", title="t", body="b")
         result = _gather_source_files(
-            "V2.1", Path("unused"), issue, self._solution(issue.issue_id)
+            "G1", Path("unused"), issue, self._solution(issue.issue_id)
         )
         self.assertEqual(result, {})
 

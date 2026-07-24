@@ -84,6 +84,63 @@ class WorkspacePreparationTest(unittest.TestCase):
             self.assertIn("existing.py", diff)
             self.assertIn("created.py", diff)
 
+    def test_init_workspace_seeds_assets_outside_the_diff(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            assets = Path(tmp) / "assets"
+            assets.mkdir()
+            (assets / "books.json").write_text("[]", encoding="utf-8")
+            (assets / "nested").mkdir()
+            (assets / "nested" / "data.csv").write_text("a,b\n", encoding="utf-8")
+
+            workspace = Path(tmp) / "ws"
+            issue = Issue(
+                issue_id="prompt__books-1",
+                title="Books",
+                body="Load assets/books.json.",
+                assets_dir=str(assets),
+            )
+            self.generator._prepare_workspace(issue, workspace)
+
+            self.assertTrue((workspace / "assets" / "books.json").is_file())
+            self.assertTrue((workspace / "assets" / "nested" / "data.csv").is_file())
+
+            # Seeded files are committed, so an untouched workspace has no diff.
+            self.assertEqual(self.generator._capture_diff(workspace), "")
+
+            # Only agent-created files appear in the diff.
+            (workspace / "app.py").write_text("app\n", encoding="utf-8")
+            diff = self.generator._capture_diff(workspace)
+            self.assertIn("app.py", diff)
+            self.assertNotIn("books.json", diff)
+
+    def test_init_workspace_fails_on_missing_assets_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "ws"
+            issue = Issue(
+                issue_id="prompt__x-1",
+                title="X",
+                body="B",
+                assets_dir=str(Path(tmp) / "does-not-exist"),
+            )
+            with self.assertRaises(RuntimeError):
+                self.generator._prepare_workspace(issue, workspace)
+
+    def test_capture_diff_excludes_execution_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "ws"
+            self.generator._init_workspace(workspace)
+            (workspace / "app.py").write_text("code\n", encoding="utf-8")
+            (workspace / "__pycache__").mkdir()
+            (workspace / "__pycache__" / "app.cpython-311.pyc").write_bytes(b"\x00")
+            (workspace / ".venv" / "lib").mkdir(parents=True)
+            (workspace / ".venv" / "lib" / "site.py").write_text("x", encoding="utf-8")
+
+            diff = self.generator._capture_diff(workspace)
+
+            self.assertIn("app.py", diff)
+            self.assertNotIn("__pycache__", diff)
+            self.assertNotIn(".venv", diff)
+
     def test_workspace_name_falls_back_to_task_id(self):
         name = self.generator._make_workspace_name(_zero_shot_issue())
         self.assertTrue(name.startswith("prompt__tool-1_"))

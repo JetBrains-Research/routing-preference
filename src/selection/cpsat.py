@@ -14,8 +14,11 @@ from .selector import CandidatePair
 def select_balanced_pairs_cpsat(
     issue_candidates: dict[str, list[CandidatePair]],
     config: SelectionConfig,
+    pairs_per_issue: int = 1,
 ) -> BalancedSelectionResult:
-    """Select one pair per issue with an exact CP-SAT model."""
+    """Select pairs_per_issue pairs per issue with an exact CP-SAT model."""
+    if pairs_per_issue < 1:
+        raise ValueError("pairs_per_issue must be at least 1")
     try:
         from ortools.sat.python import cp_model
     except ImportError as exc:
@@ -24,7 +27,7 @@ def select_balanced_pairs_cpsat(
             "`routing select --selection-method cpsat`."
         ) from exc
 
-    prepared = _prepare_candidates(issue_candidates, config)
+    prepared = _prepare_candidates(issue_candidates, config, pairs_per_issue)
     model_names = sorted(
         {
             model
@@ -39,16 +42,32 @@ def select_balanced_pairs_cpsat(
     model = cp_model.CpModel()
     variables = {}
     for issue_id, scored_candidates in prepared.items():
+        if pairs_per_issue > len(scored_candidates):
+            raise ValueError(
+                f"Requested {pairs_per_issue} pairs for {issue_id} but only "
+                f"{len(scored_candidates)} candidates exist"
+            )
         issue_vars = []
-        for index, _ in enumerate(scored_candidates):
+        infeasible_vars = []
+        feasible_count = 0
+        for index, scored in enumerate(scored_candidates):
             var = model.NewBoolVar(f"x__{issue_id}__{index}")
             variables[(issue_id, index)] = var
             issue_vars.append(var)
-        model.Add(sum(issue_vars) == 1)
+            if scored.candidate.feasible:
+                feasible_count += 1
+            else:
+                infeasible_vars.append(var)
+        model.Add(sum(issue_vars) == pairs_per_issue)
+        if infeasible_vars:
+            # Infeasible pairs only fill seats the feasible pool cannot.
+            allowed = max(0, pairs_per_issue - feasible_count)
+            model.Add(sum(infeasible_vars) <= allowed)
 
+    max_usage_bound = 2 * len(prepared) * pairs_per_issue
     usage_vars = {}
     for model_name in model_names:
-        usage = model.NewIntVar(0, 2 * len(prepared), f"usage__{model_name}")
+        usage = model.NewIntVar(0, max_usage_bound, f"usage__{model_name}")
         usage_vars[model_name] = usage
         model.Add(
             usage
@@ -60,11 +79,11 @@ def select_balanced_pairs_cpsat(
             )
         )
 
-    max_usage = model.NewIntVar(0, 2 * len(prepared), "max_usage")
-    min_usage = model.NewIntVar(0, 2 * len(prepared), "min_usage")
+    max_usage = model.NewIntVar(0, max_usage_bound, "max_usage")
+    min_usage = model.NewIntVar(0, max_usage_bound, "min_usage")
     model.AddMaxEquality(max_usage, list(usage_vars.values()))
     model.AddMinEquality(min_usage, list(usage_vars.values()))
-    spread = model.NewIntVar(0, 2 * len(prepared), "usage_spread")
+    spread = model.NewIntVar(0, max_usage_bound, "usage_spread")
     model.Add(spread == max_usage - min_usage)
 
     scaled_local = sum(
@@ -84,25 +103,26 @@ def select_balanced_pairs_cpsat(
     model_usage: Counter[str] = Counter()
     quality_band_usage: Counter[str] = Counter()
     for issue_id, scored_candidates in prepared.items():
-        selected = None
-        for index, scored in enumerate(scored_candidates):
-            if solver.Value(variables[(issue_id, index)]) == 1:
-                selected = scored
-                break
-        if selected is None:
-            raise ValueError(f"CP-SAT returned no selected pair for {issue_id}")
-        for model_name in _candidate_models(selected.candidate):
-            model_usage[model_name] += 1
-        if selected.quality_band:
-            quality_band_usage[selected.quality_band] += 1
-        used_fallback = not any(
-            candidate.feasible for candidate in issue_candidates[issue_id]
-        )
+        selected = [
+            scored
+            for index, scored in enumerate(scored_candidates)
+            if solver.Value(variables[(issue_id, index)]) == 1
+        ]
+        if len(selected) != pairs_per_issue:
+            raise ValueError(
+                f"CP-SAT selected {len(selected)} pairs for {issue_id}, "
+                f"expected {pairs_per_issue}"
+            )
+        for pick in selected:
+            for model_name in _candidate_models(pick.candidate):
+                model_usage[model_name] += 1
+            if pick.quality_band:
+                quality_band_usage[pick.quality_band] += 1
         selections[issue_id] = IssueSelection(
             issue_id=issue_id,
             selected=selected,
             candidates=scored_candidates,
-            used_fallback=used_fallback,
+            used_fallback=any(not s.candidate.feasible for s in selected),
         )
 
     return BalancedSelectionResult(
@@ -116,18 +136,20 @@ def select_balanced_pairs_cpsat(
 def _prepare_candidates(
     issue_candidates: dict[str, list[CandidatePair]],
     config: SelectionConfig,
+    pairs_per_issue: int = 1,
 ) -> dict[str, list[ScoredCandidate]]:
     prepared = {}
     for issue_id, candidates in issue_candidates.items():
         if not candidates:
             raise ValueError(f"No candidates for issue: {issue_id}")
         pool = [candidate for candidate in candidates if candidate.feasible]
-        if not pool:
+        if len(pool) < pairs_per_issue:
             if config.fallback_if_no_feasible_pair != "best_local":
                 raise ValueError(
-                    f"No feasible candidates for {issue_id} and fallback is disabled"
+                    f"Only {len(pool)} feasible candidates for {issue_id} "
+                    "and fallback is disabled"
                 )
-            pool = candidates
+            pool = pool + [c for c in candidates if not c.feasible]
         prepared[issue_id] = [
             _static_score_candidate(candidate, config)
             for candidate in pool

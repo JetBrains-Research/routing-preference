@@ -28,6 +28,10 @@ class Issue:
     # Derived from repo when not set explicitly
     task_type: str | None = None
 
+    # Directory copied into the workspace before the agent runs (zero-shot
+    # tasks whose prompt references provided data files)
+    assets_dir: str | None = None
+
     # Optional
     labels: list[str] = field(default_factory=list)
     base_commit: str | None = None

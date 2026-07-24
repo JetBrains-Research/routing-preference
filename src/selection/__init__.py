@@ -16,6 +16,7 @@ from .selector import (
     generate_candidate_pairs,
     select_best_candidate,
     select_best_pair,
+    select_top_candidates,
 )
 from .storage import (
     SelectionStorage,
@@ -43,6 +44,7 @@ __all__ = [
     "load_selection_config",
     "select_best_candidate",
     "select_best_pair",
+    "select_top_candidates",
     "select_balanced_pairs",
     "select_balanced_pairs_cpsat",
     "select_pair_for_issue",

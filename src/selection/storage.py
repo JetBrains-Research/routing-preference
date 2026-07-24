@@ -157,6 +157,22 @@ class SelectionStorage:
         _atomic_write(path, json.dumps(payload, indent=2))
         return path
 
+    def save_pairs(self, selected_pairs: list[SelectedPair]) -> Path:
+        """Save the selected pairs of one issue, best pair first."""
+        if not selected_pairs:
+            raise ValueError("At least one selected pair is required")
+        first = selected_pairs[0]
+        issue_dir = self.selections_dir / sanitize_path_segment(first.issue_id)
+        issue_dir.mkdir(parents=True, exist_ok=True)
+        path = issue_dir / f"{selection_run_id(first)}.json"
+        payload = {
+            "issue_id": first.issue_id,
+            "pair_count": len(selected_pairs),
+            "pairs": [asdict(pair) for pair in selected_pairs],
+        }
+        _atomic_write(path, json.dumps(payload, indent=2))
+        return path
+
     def load(self, issue_id: str, run_id: str) -> SelectedPair | None:
         path = self.selections_dir / sanitize_path_segment(issue_id) / f"{run_id}.json"
         if not path.exists():
@@ -194,20 +210,26 @@ class SelectionStorage:
                 candidates_path,
                 json.dumps(_issue_candidates_payload(issue_selection), indent=2),
             )
-            selected_payload = _scored_candidate_payload(issue_selection.selected)
-            selected_payload["issue_id"] = issue_id
-            selected_payload["used_fallback"] = issue_selection.used_fallback
+            selected_payload = {
+                "issue_id": issue_id,
+                "used_fallback": issue_selection.used_fallback,
+                "pair_count": len(issue_selection.selected),
+                "pairs": [
+                    {**_scored_candidate_payload(pick), "rank": rank}
+                    for rank, pick in enumerate(issue_selection.selected, 1)
+                ],
+            }
             _atomic_write(selected_path, json.dumps(selected_payload, indent=2))
-            selected_pairs.append(
-                {
-                    "issue_id": issue_id,
-                    "solution_ids": list(
-                        issue_selection.selected.candidate.solution_ids
-                    ),
-                    "quality_band": issue_selection.selected.quality_band,
-                    "used_fallback": issue_selection.used_fallback,
-                }
-            )
+            for rank, pick in enumerate(issue_selection.selected, 1):
+                selected_pairs.append(
+                    {
+                        "issue_id": issue_id,
+                        "rank": rank,
+                        "solution_ids": list(pick.candidate.solution_ids),
+                        "quality_band": pick.quality_band,
+                        "used_fallback": not pick.candidate.feasible,
+                    }
+                )
 
         summary = {
             "selection_run_id": run_id,
@@ -296,9 +318,10 @@ def _issue_candidates_payload(issue_selection: IssueSelection) -> dict:
         "issue_id": issue_selection.issue_id,
         "candidate_count": len(issue_selection.candidates),
         "used_fallback": issue_selection.used_fallback,
-        "selected_solution_ids": list(
-            issue_selection.selected.candidate.solution_ids
-        ),
+        "selected_solution_ids": [
+            list(pick.candidate.solution_ids)
+            for pick in issue_selection.selected
+        ],
         "candidates": [
             _scored_candidate_payload(candidate)
             for candidate in issue_selection.candidates

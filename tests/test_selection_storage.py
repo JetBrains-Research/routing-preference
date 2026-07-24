@@ -392,8 +392,10 @@ class SelectionStorageTest(unittest.TestCase):
             selected = json.loads(
                 (run_dir / "selected" / "issue-1.json").read_text()
             )
-            self.assertIn("total_score", selected)
-            self.assertIn("score_components", selected)
+            self.assertEqual(selected["pair_count"], 1)
+            self.assertIn("total_score", selected["pairs"][0])
+            self.assertIn("score_components", selected["pairs"][0])
+            self.assertEqual(selected["pairs"][0]["rank"], 1)
 
 
 if __name__ == "__main__":

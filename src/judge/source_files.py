@@ -1,11 +1,53 @@
 """Fetch source files from GitHub for V2 scoring."""
 
 import json
+import logging
 import os
 import re
 from pathlib import Path
 
 import requests
+
+logger = logging.getLogger(__name__)
+
+MAX_ASSET_FILE_BYTES = 50_000
+MAX_ASSET_TOTAL_BYTES = 150_000
+
+
+def load_asset_files(
+    assets_dir: str,
+    max_file_bytes: int = MAX_ASSET_FILE_BYTES,
+    max_total_bytes: int = MAX_ASSET_TOTAL_BYTES,
+) -> dict[str, str]:
+    """Load the starting files a zero-shot task provided to the agent.
+
+    Returns paths relative to the workspace (including the assets folder
+    name, matching how the agent saw them). Binary and oversized files are
+    skipped with a log line; loading stops before the total budget is
+    exceeded.
+    """
+    root = Path(assets_dir)
+    if not root.is_dir():
+        raise FileNotFoundError(f"Assets directory not found: {assets_dir}")
+
+    asset_files: dict[str, str] = {}
+    total = 0
+    for path in sorted(p for p in root.rglob("*") if p.is_file()):
+        relative = f"{root.name}/{path.relative_to(root).as_posix()}"
+        size = path.stat().st_size
+        if size > max_file_bytes:
+            logger.info("Skipping oversized asset %s (%d bytes)", relative, size)
+            continue
+        if total + size > max_total_bytes:
+            logger.info("Asset budget reached; skipping %s", relative)
+            continue
+        try:
+            asset_files[relative] = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            logger.info("Skipping binary asset %s", relative)
+            continue
+        total += size
+    return asset_files
 
 
 def load_exposed_files(solution_folder: Path) -> list[str]:

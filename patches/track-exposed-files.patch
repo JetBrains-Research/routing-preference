@@ -1,27 +1,49 @@
 diff --git a/src/minisweagent/config/default.yaml b/src/minisweagent/config/default.yaml
-index 8f5ebb1a..da548161 100644
+index 8f5ebb1a..42dbd906 100644
 --- a/src/minisweagent/config/default.yaml
 +++ b/src/minisweagent/config/default.yaml
-@@ -25,11 +25,14 @@ agent:
+@@ -16,7 +16,7 @@ agent:
+ 
+     Failure to follow these rules will cause your response to be rejected.
+   instance_template: |
+-    Please solve this issue: {{task}}
++    Please solve this task: {{task}}
+ 
+     You can execute bash commands and edit files to implement the necessary changes.
+ 
+@@ -24,12 +24,16 @@ agent:
+ 
      This workflow should be done step-by-step so that you can iterate on your changes and any possible problems.
  
-     1. Analyze the codebase by finding and reading relevant files
+-    1. Analyze the codebase by finding and reading relevant files
 -    2. Create a script to reproduce the issue
 -    3. Edit the source code to resolve the issue
 -    4. Verify your fix works by running your script again
-+    2. If the task is a bug fix, write a script to reproduce the issue before fixing it
-+       For other tasks (features, refactors, etc.), skip reproduction and go straight to analyzing how to implement the change
-+    3. Edit the source code to resolve the task
-+    4. Verify your changes: re-run the reproduction script for bugs, or run the relevant tests for other tasks
-     5. Test edge cases to ensure your fix is robust
+-    5. Test edge cases to ensure your fix is robust
 -    6. Submit your changes and finish your work by issuing the following command: `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT`.
++    1. Analyze the existing codebase by finding and reading relevant files
++       If you are starting from an empty project, plan the project structure and needed files instead
++    2. If the task is a bug fix, write a script to reproduce the issue before fixing it
++       For other tasks (features, refactors, new projects, etc.), skip reproduction and go straight to analyzing how to implement the change
++    3. Create or edit the source code to resolve the task
++    4. Verify your changes: re-run the reproduction script for bugs, or exercise the implemented functionality for other tasks
++    5. Test edge cases to ensure your solution is robust
 +    6. Write a summary of your changes covering what you changed and why. Your summary must not contain double quotes, backticks, or dollar signs. You can use single quotes or rephrase if needed.
 +    7. When your changes are finished, issue the following command: `echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT "<your summary here>"`.
 +       Replace `<your summary here>` with the summary you wrote in step 6. The summary must be wrapped in double quotes.
         Do not combine it with any other command. <important>After this command, you cannot continue working on this task.</important>
  
      ## Important Rules
-@@ -151,8 +154,9 @@ model:
+@@ -48,7 +52,7 @@ agent:
+     Here is an example of a correct response:
+ 
+     <example_response>
+-    THOUGHT: I need to understand the structure of the repository first. Let me check what files are in the current directory to get a better understanding of the codebase.
++    THOUGHT: I need to understand the current state of the project first. Let me check what files are in the current directory.
+ 
+     ```mswea_bash_command
+     ls -la
+@@ -151,8 +155,9 @@ model:
      Here is general guidance on how to format your response:
  
      Please always provide EXACTLY ONE action in triple backticks, found {{actions|length}} actions.
@@ -33,7 +55,7 @@ index 8f5ebb1a..da548161 100644
      Else, please format your response exactly as follows:
  
      <response_example>
-@@ -164,4 +168,4 @@ model:
+@@ -164,4 +169,4 @@ model:
      </response_example>
  
      Note: In rare cases, if you need to reference a similar format in your command, you might have

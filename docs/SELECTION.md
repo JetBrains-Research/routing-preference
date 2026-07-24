@@ -36,6 +36,11 @@ The framing is:
 Global balanced multiple-choice pair selection
 ```
 
+Selection can pick more than one pair per issue (`--pairs-per-issue N`). The
+N pairs of an issue are always distinct; they may share individual solutions.
+Feasible pairs are always used before infeasible ones, and the greedy
+balancer updates model-usage counts between the picks of the same issue.
+
 Each issue is a group. Each feasible pair for that issue is a candidate choice.
 The selector chooses exactly one candidate per issue while optimizing both local pair quality and global coverage constraints.
 
@@ -288,6 +293,7 @@ The command also accepts:
 
 ```bash
 uv run routing select --global-balanced --selection-method cpsat
+uv run routing select --global-balanced --pairs-per-issue 2
 ```
 
 The CP-SAT backend is optional and requires OR-Tools. The default `greedy`

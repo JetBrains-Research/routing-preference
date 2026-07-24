@@ -25,9 +25,30 @@ from .templating import fill_template
 logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT = 600
+# Per agent command; generous runs waste minutes when a model starts a
+# blocking server and waits out the clock.
+COMMAND_TIMEOUT = 120
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 AGENT_DIR = PROJECT_ROOT / "docs" / "agent"
+MODELS_CONFIG_PATH = PROJECT_ROOT / "configs" / "models.yaml"
 DEFAULT_DOCKER_IMAGE = "python:3.11-slim"
+
+
+def load_provider_order(
+    model_name: str, config_path: Path = MODELS_CONFIG_PATH
+) -> list[str] | None:
+    """Return the configured OpenRouter provider order for a model, if any."""
+    if not config_path.exists():
+        return None
+    import yaml
+
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    for entry in (config.get("models") or {}).values():
+        openrouter = (entry.get("providers") or {}).get("openrouter") or {}
+        if openrouter.get("model") == model_name:
+            order = openrouter.get("provider_order")
+            return [str(p) for p in order] if order else None
+    return None
 
 
 class SolutionGenerator:
@@ -115,7 +136,7 @@ class SolutionGenerator:
 
             start = time.monotonic()
             trajectory, diff, exposed_files, grep_exposed_files = self._run_agent(
-                workspace, model, prompt, timeout
+                workspace, model, prompt
             )
             completion_time_seconds = time.monotonic() - start
             duration_ms = int(completion_time_seconds * 1000)
@@ -162,18 +183,31 @@ class SolutionGenerator:
             if issue.base_commit:
                 self._checkout_commit(workspace, issue.base_commit, timeout=timeout)
         else:
-            self._init_workspace(workspace, timeout=timeout)
+            self._init_workspace(
+                workspace, timeout=timeout, seed_dir=issue.assets_dir
+            )
 
     def _init_workspace(
         self,
         workspace: Path,
         timeout: int = DEFAULT_TIMEOUT,
+        seed_dir: str | None = None,
     ) -> None:
-        """Create an empty git workspace with an initial commit."""
+        """Create a git workspace, seeded with provided asset files if any.
+
+        Seeded files are part of the initial commit so they never appear in
+        the solution diff.
+        """
         workspace.mkdir(parents=True, exist_ok=True)
+        if seed_dir:
+            source = Path(seed_dir)
+            if not source.is_dir():
+                raise RuntimeError(f"Workspace seed directory not found: {source}")
+            shutil.copytree(source, workspace / source.name)
         identity = ["-c", "user.name=routing", "-c", "user.email=routing@localhost"]
         for cmd in (
             ["git", "init"],
+            ["git", "add", "-A"],
             ["git", *identity, "commit", "--allow-empty", "-m", "Initial commit"],
         ):
             try:
@@ -282,7 +316,6 @@ class SolutionGenerator:
         workspace: Path,
         model_name: str,
         prompt: str,
-        timeout: int,
     ) -> tuple[dict, str, list[str], list[str]]:
         """Run mini-swe-agent and return trajectory, diff, and exposure lists."""
         base_config = get_config_from_spec("default")
@@ -293,7 +326,7 @@ class SolutionGenerator:
                 "environment_class": "docker",
                 "image": docker_image,
                 "cwd": "/workspace",
-                "timeout": timeout,
+                "timeout": COMMAND_TIMEOUT,
                 "forward_env": [
                     "GITHUB_TOKEN",
                     "GH_TOKEN",
@@ -314,17 +347,29 @@ class SolutionGenerator:
         else:
             env_config = {
                 "cwd": str(workspace),
-                "timeout": timeout,
+                "timeout": COMMAND_TIMEOUT,
+            }
+
+        model_config = {
+            "model_name": model_name,
+            "cost_tracking": "ignore_errors",
+            "model_class": "litellm_textbased",
+        }
+        provider_order = load_provider_order(model_name)
+        if provider_order:
+            model_config["model_kwargs"] = {
+                "extra_body": {
+                    "provider": {
+                        "order": provider_order,
+                        "allow_fallbacks": True,
+                    }
+                }
             }
 
         config = recursive_merge(
             base_config,
             {
-                "model": {
-                    "model_name": model_name,
-                    "cost_tracking": "ignore_errors",
-                    "model_class": "litellm_textbased",
-                },
+                "model": model_config,
                 "environment": env_config,
                 "agent": {
                     "cost_limit": 10.0,
@@ -347,8 +392,29 @@ class SolutionGenerator:
         diff = self._capture_diff(workspace)
         return trajectory, diff, exposed_files, grep_exposed_files
 
+    # Execution artifacts that must not appear in solution diffs.
+    DIFF_EXCLUDES = (
+        "__pycache__/",
+        "*.pyc",
+        ".venv/",
+        "venv/",
+        "env/",
+        "node_modules/",
+        ".pytest_cache/",
+        "*.egg-info/",
+        ".mypy_cache/",
+        ".ruff_cache/",
+    )
+
     def _capture_diff(self, workspace: Path) -> str:
         """Capture the solution diff, including newly created files."""
+        exclude_file = workspace / ".git" / "info" / "exclude"
+        try:
+            exclude_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(exclude_file, "a", encoding="utf-8") as f:
+                f.write("\n".join(self.DIFF_EXCLUDES) + "\n")
+        except OSError:
+            logger.warning("Could not write diff excludes for %s", workspace)
         try:
             subprocess.run(
                 ["git", "add", "-N", "."],

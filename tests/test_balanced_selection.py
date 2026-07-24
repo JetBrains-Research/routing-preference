@@ -81,7 +81,7 @@ class BalancedSelectionTest(unittest.TestCase):
         }
 
         result = select_balanced_pairs(issue_candidates, config)
-        selected_issue_2 = result.selections["issue-2"].selected.candidate
+        selected_issue_2 = result.selections["issue-2"].selected[0].candidate
 
         self.assertIn("model-c", result.model_usage)
         self.assertIn(
@@ -92,6 +92,40 @@ class BalancedSelectionTest(unittest.TestCase):
             },
         )
         self.assertEqual(result.model_usage["model-c"], 1)
+
+    def test_selects_multiple_distinct_pairs_per_issue(self):
+        config = SelectionConfig(quality_bands={"all": (1.0, 5.0)})
+        result = select_balanced_pairs(
+            {
+                "issue-1": candidates(
+                    solution("a1", "model-a", (5, 1, 5, 1)),
+                    solution("b1", "model-b", (1, 5, 1, 5)),
+                    solution("c1", "model-c", (3, 3, 3, 3)),
+                ),
+            },
+            config,
+            pairs_per_issue=2,
+        )
+
+        picked = result.selections["issue-1"].selected
+        self.assertEqual(len(picked), 2)
+        ids = [tuple(p.candidate.solution_ids) for p in picked]
+        self.assertEqual(len(set(ids)), 2)
+        self.assertEqual(sum(result.model_usage.values()), 4)
+
+    def test_rejects_more_pairs_than_candidates(self):
+        config = SelectionConfig(quality_bands={"all": (1.0, 5.0)})
+        with self.assertRaises(ValueError):
+            select_balanced_pairs(
+                {
+                    "issue-1": candidates(
+                        solution("a1", "model-a", (5, 1, 5, 1)),
+                        solution("b1", "model-b", (1, 5, 1, 5)),
+                    ),
+                },
+                config,
+                pairs_per_issue=2,
+            )
 
     def test_uses_fallback_when_no_candidate_is_feasible(self):
         config = SelectionConfig(

@@ -5,6 +5,7 @@ from src.selection import (
     generate_candidate_pairs,
     select_best_candidate,
     select_best_pair,
+    select_top_candidates,
 )
 
 
@@ -43,6 +44,49 @@ class SelectionTest(unittest.TestCase):
         self.assertEqual(ab.subjective_average_gap, 0.0)
         self.assertEqual(ab.subscore_diversity, 16.0)
         self.assertTrue(ab.feasible)
+
+    def test_top_candidates_returns_distinct_feasible_first(self):
+        cands = generate_candidate_pairs(
+            [
+                solution("a", scores(5, 1, 5, 1)),
+                solution("b", scores(1, 5, 1, 5)),
+                solution("c", scores(3, 3, 3, 3)),
+            ],
+            max_average_gap=4.0,
+            min_subscore_diversity=0.0,
+        )
+
+        top2 = select_top_candidates(cands, 2)
+
+        self.assertEqual(len(top2), 2)
+        self.assertNotEqual(top2[0].solution_ids, top2[1].solution_ids)
+        self.assertEqual(top2[0], select_best_candidate(cands))
+        # feasible pairs come before infeasible ones
+        strict = generate_candidate_pairs(
+            [
+                solution("a", scores(5, 1, 5, 1)),
+                solution("b", scores(1, 5, 1, 5)),
+                solution("c", scores(1, 1, 1, 1)),
+            ],
+            max_average_gap=0.5,
+            min_subscore_diversity=0.0,
+        )
+        feasible_count = sum(1 for c in strict if c.feasible)
+        self.assertEqual(feasible_count, 1)
+        top2 = select_top_candidates(strict, 2)
+        self.assertTrue(top2[0].feasible)
+        self.assertFalse(top2[1].feasible)
+
+    def test_top_candidates_rejects_bad_n(self):
+        cands = generate_candidate_pairs(
+            [solution("a", scores(5, 1, 5, 1)), solution("b", scores(1, 5, 1, 5))],
+            max_average_gap=4.0,
+            min_subscore_diversity=0.0,
+        )
+        with self.assertRaises(ValueError):
+            select_top_candidates(cands, 2)
+        with self.assertRaises(ValueError):
+            select_top_candidates(cands, 0)
 
     def test_objective_distance_is_scale_free(self):
         candidates = generate_candidate_pairs(

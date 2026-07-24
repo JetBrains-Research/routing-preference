@@ -31,6 +31,9 @@ Recommended controls:
 - [Completion Time](objective/COMPLETION_TIME.md)
 - [Step Count](objective/STEP_COUNT.md)
 
+The completion time shown to survey participants is a standardized estimate, not the raw measurement.
+See [Estimated Completion Time](objective/ESTIMATED_COMPLETION_TIME.md).
+
 ## Related Non-Characteristic Measurements
 
 Model response latency can be useful diagnostic data, but it is not currently one of the six characteristics. In this agent setup, the final patch is produced through filesystem changes and `git diff`, not as a single streamed final answer, so "response time" is ambiguous unless defined as a separate provider/model latency metric.
